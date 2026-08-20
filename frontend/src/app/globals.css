@@ -1,0 +1,74 @@
+@import "tailwindcss";
+@import "flowbite-react/plugin/tailwindcss";
+@source "../../.flowbite-react/class-list.json";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-inter: var(--font-inter);
+  --font-play: var(--font-playfair);
+  --animate-meteor: meteor 5s linear infinite;
+
+  @keyframes meteor {
+    0% {
+      transform: rotate(var(--angle)) translateX(0);
+      opacity: 1;
+    }
+
+    70% {
+      opacity: 1;
+    }
+
+    100% {
+      transform: rotate(var(--angle)) translateX(-100vh);
+      opacity: 0;
+    }
+  }
+
+  --animate-marquee: marquee var(--duration) infinite linear;
+
+  --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite
+;
+  @keyframes marquee {
+  from {
+    transform: translateX(0);}
+  to {
+    transform: translateX(calc(-100% - var(--gap)));}}
+  @keyframes marquee-vertical {
+  from {
+    transform: translateY(0);}
+  to {
+    transform: translateY(calc(-100% - var(--gap)));}}}
+
+:root {
+  --background: #f5f7fb;
+  --foreground: #0f172a;
+  --shadow: #201c32;
+  --color: #fff;
+  --input-icon: #2563eb;
+  --nonedit: #c9c9c9;
+  --section-hover: #cad5e2;
+}
+
+.dark {
+  --background: #020617;
+  --foreground: #f8fafc;
+  --shadow: #99a1bf;
+  --color: #000;
+  --input-icon: #60a5fa;
+  --nonedit: #6c6b6b;
+  --section-hover: #314158;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
