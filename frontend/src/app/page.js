@@ -19,8 +19,8 @@ export default function Home() {
           Bookstore
         </span>
         <div className={`btns flex gap-3 justify-around text-2xl font-semibold italic *:cursor-pointer`}>
-          <Link href="/user/login" className="text-(--foreground) hover:text-(--background) bg-(--background) hover:bg-(--foreground) shadow-md shadow-[color:var(--shadow)] px-5 py-3 rounded-2xl hover:scale-110 transition-transform">Login</Link>
-          <Link href="/user/register" className="text-(--foreground) hover:text-(--background) bg-(--background) hover:bg-(--foreground) shadow-md shadow-[color:var(--shadow)] px-5 py-3 rounded-2xl hover:scale-110 transition-transform">Register</Link>
+          <Link href="/user/login" className="text-(--foreground) hover:text-(--background) bg-(--background) hover:bg-(--foreground) shadow-md shadow-(color:--shadow) px-5 py-3 rounded-2xl hover:scale-110 transition-transform">Login</Link>
+          <Link href="/user/register" className="text-(--foreground) hover:text-(--background) bg-(--background) hover:bg-(--foreground) shadow-md shadow-(color:--shadow) px-5 py-3 rounded-2xl hover:scale-110 transition-transform">Register</Link>
         </div>
       </div>
     </div>

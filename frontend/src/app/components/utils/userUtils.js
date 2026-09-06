@@ -35,3 +35,15 @@ export function checkAdmin() {
 export function logout() {
     return useFetch("get", process.env.NEXT_PUBLIC_API_Auth, process.env.NEXT_PUBLIC_MAPPING_Auth, "logout", "", true);
 }
+
+export function passwordVerify(request) {
+    return useFetch("post", process.env.NEXT_PUBLIC_API_Auth, process.env.NEXT_PUBLIC_MAPPING_Auth, "", { email: request }, true);
+}
+
+export function deleteUser() {
+    return useFetch("get", process.env.NEXT_PUBLIC_API_Auth, process.env.NEXT_PUBLIC_MAPPING_Auth, "", "", true);
+}
+
+export function allUsers(pageNumber, pageSize, role) {
+    return useFetch("get", process.env.NEXT_PUBLIC_API_User, process.env.NEXT_PUBLIC_MAPPING_User, `?page=${pageNumber}&size=${pageSize}&role=${role}`, "", true);
+}

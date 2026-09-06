@@ -61,6 +61,10 @@ public class JWTService {
                 .getPayload();
     }
 
+    public String extractUserId(String token) {
+        return extractClaim(token, claims -> claims.get("userid", String.class));
+    }
+
     public boolean isTokenValid(String token, Users user) {
         String username = extractUsername(token);
         return username.equals(user.getName())

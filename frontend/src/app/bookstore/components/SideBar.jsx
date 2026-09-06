@@ -1,5 +1,5 @@
 import { Section } from "@/app/components/utils/FunctionalUtils";
-import { useCartItemsStore, useUserStore } from "@/app/hooks/useStore";
+import { useBookStore, useCartStore, useUserStore, useWishListStore } from "@/app/hooks/useStore";
 import Avatar from '@mui/material/Avatar';
 import { usePathname } from "next/navigation";
 import { FaBook, FaShoppingCart, FaUsers } from "react-icons/fa";
@@ -15,17 +15,24 @@ import Hamburger from "@/app/components/common/Hamburger";
 
 export default function SideBar({ sidebarOpen, setSidebarOpen }) {
 
-    const { user } = useUserStore();
+    const { user, clearUser } = useUserStore();
     const pathName = usePathname();
     const { router } = useAppContext();
-    const { cartItems } = useCartItemsStore();
+    const { carts, clearCarts } = useCartStore();
+    const { clearBooks, clearCategories } = useBookStore();
+    const { clearWishlist } = useWishListStore();
 
-    const cartCount = cartItems.filter((item) => item.count > 0).length;
+    const cartCount = carts?.filter((item) => item.count > 0).length;
     //  cartItems.reduce((acc, current) => acc + current.count, 0);
 
     const { mutate } = useMutation({
         mutationFn: logout,
         onSuccess: () => {
+            clearUser();
+            clearBooks();
+            clearCarts();
+            clearCategories();
+            clearWishlist();
             router.replace("/");
         },
         onError: (response) => {
@@ -51,6 +58,18 @@ export default function SideBar({ sidebarOpen, setSidebarOpen }) {
         router.push("/bookstore/orders");
     }
 
+    function handleSettings() {
+        router.push("/bookstore/settings");
+    }
+
+    function handleSuggestions() {
+        router.push("/bookstore/suggestions");
+    }
+
+    function handleUsers() {
+        router.push("/bookstore/users");
+    }
+
     return (
         <div className="main flex flex-col gap-1 py-3 px-2 bg-(--background) rounded-xl w-full h-full relative">
             <div className="user flex gap-2 items-center mb-5">
@@ -61,8 +80,8 @@ export default function SideBar({ sidebarOpen, setSidebarOpen }) {
                     }}>{user?.name.substring(0, 2).toUpperCase()}</Avatar>
                 </div>
                 <div className="dtls flex flex-col gap-0 items-center">
-                    <h4 className="tracking-widest">{user.name.toUpperCase()}</h4>
-                    <p className="text-xs text-slate-500">{user.role}</p>
+                    <h4 className="tracking-wider font-bold">{user.name.toUpperCase()}</h4>
+                    <p className="text-xs text-slate-500 font-semibold">{user.role}</p>
                 </div>
                 {/* <div className="float-right">
                     <Hamburger opened={sidebarOpen} onClick={() => setSidebarOpen(prev => !prev)} />
@@ -80,22 +99,22 @@ export default function SideBar({ sidebarOpen, setSidebarOpen }) {
                     <h3 className="text-sm text-slate-500">SETTINGS</h3>
                     {user?.role == "USER" ?
                         <Section icon={<RiSettingsFill />} text="Orders" click={handleOrder} path="/bookstore/orders" url={pathName} /> :
-                        <Section icon={<FaUsers />} text="Users" path="/bookstore/users" url={pathName} />}
+                        <Section icon={<FaUsers />} text="Users" click={handleUsers} path="/bookstore/users" url={pathName} />}
                     {user?.role == "USER" && <Section icon={<FaShoppingCart />} text="Carts" path="/bookstore/carts" click={handleCart} url={pathName} count={cartCount} />}
-                    <Section icon={<RiProfileLine />} text="Profile" path="/bookstore/profile" url={pathName} />
+                    <Section icon={<RiProfileLine />} text="Settings" click={handleSettings} path="/bookstore/settings" url={pathName} />
                 </section>
                 <hr className="text-(--hr)" />
 
-                {user?.role == "ADMIN" &&
+                {user?.role == "ADMIN" || user?.role == "SUPERUSER" &&
                     <section className="flex flex-col gap-2 mt-auto">
                         <h3 className="text-sm text-slate-500">MANAGEMENT</h3>
                         <Section icon={<FaBook />} text="Add New Book" click={addNewBook} path="/bookstore/new" url={pathName} />
                     </section>}
-                {user?.role == "ADMIN" && <hr className="text-(--hr)" />}
+                {user?.role == "ADMIN" || user?.role == "SUPERUSER" && <hr className="text-(--hr)" />}
 
                 <section className="flex flex-col gap-2">
                     <h3 className="text-sm text-slate-500">SUPPORT</h3>
-                    <Section icon={<MdFeedback />} text="Suggestions" path="/bookstore/suggestions" url={pathName} />
+                    <Section icon={<MdFeedback />} text="Suggestions" click={handleSuggestions} path="/bookstore/suggestions" url={pathName} />
                     <Section icon={<LuBadgeHelp />} text="Help" path="/bookstore/help" url={pathName} />
                 </section>
             </div>

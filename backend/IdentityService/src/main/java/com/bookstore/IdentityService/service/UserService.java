@@ -2,8 +2,16 @@ package com.bookstore.IdentityService.service;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -25,6 +33,7 @@ import com.bookstore.IdentityService.util.Helper;
 import com.bookstore.IdentityService.util.RegisterUtil;
 
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Service
@@ -247,6 +256,99 @@ public class UserService {
             response = help.success("User Found", null);
             return ResponseEntity.status(HttpStatus.OK).body(response);
 
+        } catch (Exception e) {
+            response = help.error(e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    public ResponseEntity<ResponseDTO> getAllUsers(HttpServletRequest http) {
+        ResponseDTO response = new ResponseDTO();
+        String token = null;
+        if (http.getCookies() != null) {
+            token = getTokenFromCookie(http.getCookies());
+        }
+        if (token == null) {
+            response = help.error("Not Logged In");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+        try {
+            System.out.println("user token: " + token);
+            String userid = jwt.extractUserId(token);
+            Users user = userRepo.findById(userid).orElse(new Users());
+            if (!user.getRole().toString().equals("ADMIN")) {
+                response = help.error("Not Authorised");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+            }
+            List<Users> allUser = userRepo.findByRole("USER");
+            response = help.success("Fetched All Users", allUser);
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        } catch (Exception e) {
+            response = help.error(e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    private String getTokenFromCookie(Cookie[] cookies) {
+        for (Cookie cookie : cookies) {
+            if (cookie.getName().equals("token")) {
+                return cookie.getValue();
+            }
+        }
+        return null;
+    }
+
+    public String insertDummy(Integer count, String role) {
+        List<Users> users = new ArrayList<>();
+        for (int i = 1; i <= count; i++) {
+            Users user = new Users();
+            user.setId("USR" + i);
+            user.setName("testuser" + i);
+            user.setEmail("testuser" + i + "@example.com");
+            user.setPassword(encoder.encode("Password@123"));
+            String phone = null;
+            Users check = null;
+            do {
+                Random random = new Random();
+                phone = String.valueOf(1000000000L + random.nextLong(9000000000L));
+                check = userRepo.findByPhone(phone);
+            } while (check != null);
+            user.setPhone(phone);
+            user.setRole(role.toUpperCase());
+            user.setActive(true);
+            users.add(user);
+        }
+        try {
+            userRepo.saveAll(users);
+            return "Inserted " + count + " rows of " + role;
+        } catch (Exception e) {
+            return e.toString();
+        }
+    }
+
+    public ResponseEntity<ResponseDTO> getAllUsers(int pageNumber, int pageSize, String role, HttpServletRequest http) {
+        ResponseDTO response = new ResponseDTO();
+        String token = null;
+        if (http.getCookies() != null) {
+            token = getTokenFromCookie(http.getCookies());
+        }
+        if (token == null) {
+            response = help.error("Not Logged In");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+        try {
+            Pageable pageable = PageRequest.of(pageNumber, pageSize);
+            Page<Users> users = userRepo.findByRole(role.toUpperCase(), pageable);
+            Map<String, Object> result = new HashMap<>();
+            result.put("content", users.getContent());
+            result.put("pageNumber", users.getNumber());
+            result.put("totalPages", users.getTotalPages());
+            result.put("totalElements", users.getTotalElements());
+            result.put("pageSize", users.getSize());
+            result.put("isFirst", users.isFirst());
+            result.put("isLast", users.isLast());
+            response = help.success("Fetched Users", result);
+            return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
             response = help.error(e);
         }

@@ -7,3 +7,11 @@ export function updateCart(userid, bookid, count) {
 export function getAllCarts(userid) {
     return useFetch("get", process.env.NEXT_PUBLIC_API_Cart, process.env.NEXT_PUBLIC_MAPPING_Cart, userid, "", false);
 }
+
+export function removeBookFromCart(userid, bookid) {
+    return useFetch("delete", process.env.NEXT_PUBLIC_API_Cart, process.env.NEXT_PUBLIC_MAPPING_Cart, "deleteBook", { userid, bookid }, false);
+}
+
+export function clearCart() {
+    return useFetch("delete", process.env.NEXT_PUBLIC_API_Cart, process.env.NEXT_PUBLIC_MAPPING_Cart, "", "", true);
+}

@@ -4,20 +4,22 @@ import SideBar from "./components/SideBar";
 import TopNavBar from "./components/TopNavBar";
 import { getCurrentUser } from "../components/utils/userUtils";
 import { useEffect, useState } from "react";
-import { useBookStore, useCartItemsStore, useUserStore } from "../hooks/useStore";
+import { useBookStore, useCartStore, useUserStore, useWishListStore } from "../hooks/useStore";
 import { useAppContext } from "../components/common/AppContext";
 import { showInfo } from "../components/utils/showToasts";
 import { getAllCarts } from "../components/utils/cartUtils";
 import { getAllBooks } from "../components/utils/bookUtils";
+import { getWishlist } from "../components/utils/commonUtils";
 
 export default function BookStoreLayout({ children }) {
 
     const [sidebarOpen, setSidebarOpen] = useState(true);
 
     const { user, setUser, clearUser } = useUserStore();
-    const { router } = useAppContext();
-    const { cartItems, setCartItems } = useCartItemsStore();
-    const { setBooks, setCategories } = useBookStore();
+    const { router, setCartId } = useAppContext();
+    const { setCarts, clearCarts } = useCartStore();
+    const { setBooks, clearBooks, setCategories, clearCategories } = useBookStore();
+    const { setWishlist, clearWishlist } = useWishListStore();
 
     const { data: userData, isPending: userPending, isSuccess: userSuccess, isError: userError } = useQuery({
         queryKey: ["currentUser"],
@@ -33,11 +35,30 @@ export default function BookStoreLayout({ children }) {
         }
         else if (userError || (!userSuccess || !userData?.success)) {
             clearUser();
+            clearBooks();
+            clearCarts();
+            clearCategories();
+            clearWishlist();
             showInfo("Session expired, Please Login");
             router.replace("/user/login");
         }
     }, [userData, userPending, userSuccess, userError, router])
 
+    const { data: bookData, isPending: bookPending, isSuccess: bookSuccess, isError: bookError } = useQuery({
+        queryKey: ["allBooks"],
+        queryFn: getAllBooks,
+        select: (response) => response?.data,
+        enabled: !!user?.id
+    });
+
+    useEffect(() => {
+        if (bookPending) return;
+        if (bookSuccess && bookData?.success && bookData?.data) {
+            setBooks(bookData?.data.books);
+            setCategories(bookData?.data.category);
+            return;
+        }
+    }, [bookData, bookSuccess, setBooks, setCategories])
 
     const { data: cartData, isPending: cartPending, isSuccess: cartSuccess, isError: cartError } = useQuery({
         queryKey: ["allCarts", user?.id],
@@ -46,51 +67,56 @@ export default function BookStoreLayout({ children }) {
         enabled: !!user?.id
     })
 
-    const { data: bookData, isPending: bookPending, isSuccess: bookSuccess, isError: bookError } = useQuery({
-        queryKey: ["allBooks"],
-        queryFn: () => getAllBooks(cartItems),
-        select: (response) => response?.data,
-        enabled: cartSuccess && cartItems !== undefined,
-    });
-
     useEffect(() => {
         if (cartPending) return;
-        if (cartSuccess && cartData?.success && cartData?.data) {
-            console.log("cartdate:", cartData);
-            setCartItems(cartData?.data.books);
+        if (cartSuccess && cartData?.success) {
+            if (cartData.data) {
+                setCarts(cartData.data.books ?? []);
+                setCartId(cartData.data._id);
+            } else {
+                setCarts([]);
+                setCartId(null);
+            }
         }
-    }, [cartData, cartPending, cartSuccess, cartError, router]);
+    }, [cartData, cartSuccess, setCarts, setCartId]);
+
+    const { data: wishlistData, isPending: wishlistPending, isSuccess: wishlistSuccess, isError: wishlistError } = useQuery({
+        queryKey: ["wishlist", user?.id],
+        queryFn: getWishlist,
+        select: (response) => response?.data,
+        enabled: !!user?.id
+    })
 
     useEffect(() => {
-        if (bookPending || cartPending) return;
-        if (bookSuccess && bookData?.success && bookData?.data) {
-            setBooks(bookData?.data.books);
-            setCategories(bookData?.data.category);
-            return;
+        if (wishlistPending) return;
+        if (wishlistSuccess && wishlistData?.success) {
+            setWishlist(wishlistData?.data);
         }
-    }, [bookData, bookPending, bookSuccess, bookError, router])
-
+    }, [wishlistData, wishlistSuccess, setWishlist]);
 
     if (userPending && !user) {
         return <div>...Loading</div>
     }
 
-    if (bookPending || cartPending) {
-        return <div>...Loading</div>
-    }
+    // if (bookPending || cartPending) {
+    //     return <div>...Loading</div>
+    // }
 
     if (userError || !userData?.success || !userData?.data) {
-        return null;
+        return <div>...Loading</div>;
     }
 
-    if (bookError || !bookData?.success || !bookData?.data ||
-        cartError || !cartData?.success || !cartData?.data
+    if (
+        // bookError || !bookData?.success || !bookData?.data ||
+        // cartError || !cartData?.success ||
+        wishlistError || !wishlistData?.success
     ) {
         return null;
     }
 
+
     return (
-        <div className={`grid ${sidebarOpen ? "grid-cols-[0.15fr_1fr]" : "grid-cols-[60px_1fr"} grid-rows-[0.1fr_1fr] py-2 px-1.5 gap-1 h-screen w-screen bg-gray-400`}>
+        <div className={`grid ${sidebarOpen ? "grid-cols-[0.15fr_1fr]" : "grid-cols-[0.5fr_1fr"} grid-rows-[0.05fr_1fr] py-2 px-1.5 gap-1 h-screen w-screen bg-gray-400`}>
             <aside className="row-span-2">
                 <SideBar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
             </aside>

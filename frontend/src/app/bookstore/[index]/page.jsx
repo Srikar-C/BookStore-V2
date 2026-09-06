@@ -9,7 +9,7 @@ import { BiCategory } from "react-icons/bi";
 import { IoPricetagsOutline } from "react-icons/io5";
 import { MdDriveFileRenameOutline, MdOutlineDescription, MdSubtitles } from "react-icons/md";
 import { getColor } from "@/app/components/utils/FunctionalUtils";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { addBook, editBook, getBook } from "@/app/components/utils/bookUtils";
 import { showError, showSuccess } from "@/app/components/utils/showToasts";
 import { useAppContext } from "@/app/components/common/AppContext";
@@ -21,8 +21,7 @@ export default function Book() {
     const isNew = (index === "new");
     const { user } = useUserStore();
     const { router } = useAppContext();
-
-    console.log("index", index, isNew, (index === "new"));
+    const queryClient = useQueryClient();
 
     const { register, formState, handleSubmit, reset, setError } = useForm({
         defaultValues: {
@@ -68,14 +67,12 @@ export default function Book() {
                 quantity: data.quantity,
                 category: data.category,
             })
-            console.log("fetched data", data);
         }
     }, [isNew, bookData, bookSuccess, reset]);
 
     const { mutate: addingBook, isPending: addPending } = useMutation({
         mutationFn: addBook,
         onSuccess: (response) => {
-            console.log(response);
             const result = response.data;
             if (response.status === 201) {
                 showSuccess(result.message);
@@ -83,7 +80,6 @@ export default function Book() {
             }
         },
         onError: (error) => {
-            console.log(error);
             if (error.status === 400) {
                 const errors = error.data;
                 Object.entries(errors).forEach(([field, message]) => {
@@ -114,15 +110,16 @@ export default function Book() {
     const { mutate: editingBook, isPending: editPending } = useMutation({
         mutationFn: editBook,
         onSuccess: (response) => {
-            console.log(response);
             const result = response.data;
             if (response.status === 200) {
                 showSuccess(result.message);
+                queryClient.invalidateQueries({
+                    queryKey: ["allBooks"]
+                })
                 router.replace("/bookstore");
             }
         },
         onError: (error) => {
-            console.log(error);
             if (error.status === 400) {
                 const errors = error.data;
                 Object.entries(errors).forEach(([field, message]) => {
@@ -156,17 +153,10 @@ export default function Book() {
             id: user.id,
             ...data
         }
-        console.log("data: ", request);
         if (isNew) {
-            console.log("new");
             addingBook(request);
         }
         else {
-            console.log("old");
-            console.log("BEFORE MUTATION:", {
-                id: index,
-                request: request
-            });
             editingBook({ id: index, request });
         }
     }

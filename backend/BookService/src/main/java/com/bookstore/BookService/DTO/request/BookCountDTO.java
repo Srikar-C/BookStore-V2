@@ -19,4 +19,5 @@ public class BookCountDTO {
     private BigDecimal quantity;
     private BigDecimal price;
     private BigDecimal count;
+    private boolean star;
 }

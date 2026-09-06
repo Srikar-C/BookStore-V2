@@ -1,14 +1,13 @@
 "use client";
-import { useBookStore, useCartItemsStore, useUserStore } from "@/app/hooks/useStore"
+import { useBookStore, useCartStore } from "@/app/hooks/useStore";
 import BookCard from "../components/BookCard";
 
 export default function Carts() {
 
-    const { cartItems } = useCartItemsStore();
-    const { user } = useUserStore();
+    const { carts } = useCartStore();
     const { books } = useBookStore();
 
-    const cartBooks = cartItems.filter((item) => item.count)
+    const cartBooks = carts.filter((item) => item.count > 0)
         .map((item) => {
             const book = books.find((b) => b.id === item.bookId);
 
@@ -18,21 +17,23 @@ export default function Carts() {
             };
         })
 
-    console.log(cartItems, books, cartBooks);
+    const validBooks = cartBooks.filter((book) => book.quantity >= book.count);
+    const invalidBooks = cartBooks.filter((book) => book.quantity < book.count);
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 p-4 overflow-y-auto w-full h-full bg-(--background) rounded-xl">
-            {cartBooks?.map((item) => (
-                <BookCard key={item.id} book={item} />
-            ))}
+        <div className="grid grid-rows-2 overflow-y-auto w-full h-full bg-(--background) rounded-xl gap-5 p-4">
+            {validBooks.length <= 0 && invalidBooks.length <= 0 && <div className="text-gray-400 text-2xl text-center justify-center font-semibold py-5">No Cart Items</div>}
+            {invalidBooks.length > 0 && <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 p-4 ">
+                {invalidBooks?.map((item, index) => (
+                    <BookCard key={index} book={item} mode="cart" />
+                ))}
+            </div>}
+            {invalidBooks.length > 0 && <hr />}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 p-4">
+                {validBooks?.map((item, index) => (
+                    <BookCard key={index} book={item} mode="cart" />
+                ))}
+            </div>
         </div>
-        // <div className="grid grid-row-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 p-4 overflow-y-auto w-full h-full bg-(--background) rounded-xl">
-        //     <div className="categories flex gap-3 h-[5vh] col-span-3 items-start content-start">
-
-        //     </div>
-        //     {cartBooks?.map((item) => (
-        //         <BookCard key={item.id} book={item} />
-        //     ))}
-        // </div>
     )
 }

@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import cartModel from "../Schema/carts.schema.js";
 import { generatedId } from "../util/cartUtils.js";
 import useFetch from "../util/useFetch.js";
+import jwt from "jsonwebtoken";
 
 dotenv.config();
 
@@ -63,6 +64,87 @@ router.get("/carts/:userid", async (req, res) => {
         let carts = await cartModel.findOne({ userId: userid });
         console.log("Fetched Carts: ", carts);
         return res.status(200).json({ success: true, message: "Fetched Carts", data: carts, error: null });
+    } catch (error) {
+        console.error("Error in updating Cart: ", error);
+        return res.status(500).json({ success: false, message: "Something Went Wrong", data: null, error: error });
+    }
+})
+
+router.delete("/carts/deleteBook", async (req, res) => {
+    try {
+        const { userid, bookid } = req.body;
+        console.log("deletecart: ", userid, bookid);
+        let cart = await cartModel.findOneAndUpdate(
+            { userId: userid },
+            {
+                $pull: {
+                    books: { bookId: bookid }
+                }
+            },
+            { new: true }
+        );
+        if (!cart) {
+            return res.status(404).json({
+                success: false,
+                message: "Cart not found",
+                data: null
+            });
+        }
+        return res.status(200).json({
+            success: true,
+            message: "Book removed from cart",
+            data: cart,
+            error: null,
+        });
+    } catch (error) {
+        console.error("Error in updating Cart: ", error);
+        return res.status(500).json({ success: false, message: "Something Went Wrong", data: null, error: error });
+    }
+});
+
+
+router.delete("/carts/:cartid", async (req, res) => {
+    const { cartid } = req.params;
+    console.log("cartid for order:", cartid);
+    try {
+        const cart = await cartModel.findByIdAndDelete(cartid);
+        if (!cart) {
+            return res.status(404).json({ success: false, message: "Cart Not available", data: null, error: null });
+        }
+        return res.status(200).json({ success: true, message: "Cart Reseted", data: null, error: null });
+    } catch (error) {
+        console.error("Error in resetting cart: ", error);
+        return res.status(500).json({ success: false, message: "Exception", data: null, error: error });
+    }
+});
+
+router.delete("/carts", async (req, res) => {
+    const token = req.cookies.token;
+    console.log("token for cart:", token);
+    if (!token) {
+        return res.status(401).json({ success: false, message: null, data: null, error: "Not authenticated" });
+    }
+    const secret = Buffer.from(process.env.JWT_SECRET, "base64");
+    const decoded = jwt.verify(token, secret);
+    console.log("decoded: ", decoded);
+    const userid = decoded.userid;
+    try {
+        let cart = await cartModel.findOneAndDelete({ userId: userid });
+        console.log("to be removed cart", cart);
+        if (!cart) {
+            return res.status(404).json({
+                success: false,
+                message: "Cart not found",
+                data: null
+            });
+        }
+        return res.status(200).json({
+            success: true,
+            message: "Cart removed for user",
+            data: null,
+            error: null,
+        });
+
     } catch (error) {
         console.error("Error in updating Cart: ", error);
         return res.status(500).json({ success: false, message: "Something Went Wrong", data: null, error: error });

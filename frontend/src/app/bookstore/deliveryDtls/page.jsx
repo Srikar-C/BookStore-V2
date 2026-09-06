@@ -1,13 +1,18 @@
 "use client"
 import { useAppContext } from "@/app/components/common/AppContext";
-import { getDeliveryDate } from "@/app/components/utils/FunctionalUtils";
-import { useBookStore, useCartItemsStore, useUserStore } from "@/app/hooks/useStore";
+import { formattedDate, getDeliveryDate } from "@/app/components/utils/FunctionalUtils";
+import { setOrder } from "@/app/components/utils/orderUtils";
+import { showError, showInfo, showSuccess } from "@/app/components/utils/showToasts";
+import { useBookStore, useCartStore, useUserStore } from "@/app/hooks/useStore";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import { TbSum } from "react-icons/tb";
+import { PuffLoader } from "react-spinners";
 
 export default function DeliveryDtls() {
 
-    const { cartItems } = useCartItemsStore();
+    const { carts } = useCartStore();
     const { user } = useUserStore();
     const { books } = useBookStore();
     const [location, setLocation] = useState({
@@ -16,32 +21,48 @@ export default function DeliveryDtls() {
         display_name: "",
     });
     const [date, setDate] = useState(null);
-    const { router } = useAppContext();
+    const { router, cartId } = useAppContext();
+    const queryClient = useQueryClient();
+
+    const [edit, setEdit] = useState(false);
+    const [locLoad, setLocload] = useState(true);
+
+    const { register, handleSubmit, watch, setValue } = useForm({
+        defaultValues: {
+            name: user.name,
+            phone: user.phone,
+            address: ""
+        }
+    })
 
     useEffect(() => {
+        setLocload(true);
         navigator.geolocation.getCurrentPosition(async (position) => {
-            const { latitude, longitude } = position.coords;
+            try {
+                const { latitude, longitude } = position.coords;
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+                );
 
-            setLocation((prev) => ({
-                ...prev,
-                latitude: latitude,
-                longitude: longitude,
-            }))
-            const response = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
-            );
-
-            const data = await response.json();
-
-            console.log(data);
-            setLocation((prev) => ({
-                ...prev,
-                display_name: data.display_name
-            }))
+                const data = await response.json();
+                setValue("address", data.display_name);
+                setLocation((prev) => ({
+                    ...prev,
+                    latitude: latitude,
+                    longitude: longitude,
+                    display_name: data.display_name
+                }))
+            }
+            catch (err) {
+                console.error(err);
+            }
+            finally {
+                setLocload(false);
+            }
         });
     }, []);
 
-    const cartBooks = cartItems.filter((item) => item.count)
+    const cartBooks = carts.filter((item) => item.count)
         .map((item) => {
             const book = books.find((b) => b.id === item.bookId);
 
@@ -62,12 +83,21 @@ export default function DeliveryDtls() {
         }
     })
 
-    console.log(orderedBooks);
-
     const orders = {
         userId: user.id,
-        books: orderedBooks,
+        cartId: cartId,
+        books: orderedBooks.map((item) => {
+            return {
+                bookId: item.bookId,
+                count: item.bookCount,
+                price: item.bookPrice,
+            }
+        }),
         location: location,
+        userDtls: {
+            deliveryname: "",
+            deliveryphone: "",
+        },
         deliveryBy: date
     };
 
@@ -82,27 +112,111 @@ export default function DeliveryDtls() {
     const totalItems = orderedBooks.reduce((sum, item) => sum + item.bookCount, 0);
     const grandTotal = orderedBooks.reduce((sum, item) => sum + (item.bookCount * item.bookPrice), 0);
 
+    function onSubmit(data) {
+        if (locLoad) return;
+        setEdit(!edit);
+    }
+
+    const { mutate: bookOrder } = useMutation({
+        mutationFn: setOrder,
+        onSuccess: (response) => {
+            console.log(response);
+            const result = response.data;
+            if (response.status === 200) {
+                showSuccess(result.message);
+                queryClient.invalidateQueries({
+                    queryKey: ["allCarts", user?.id]
+                })
+                queryClient.invalidateQueries({
+                    queryKey: ["allBooks"]
+                })
+                router.replace("/bookstore");
+
+            }
+        },
+        onError: (error) => {
+            console.log("order error: ", error);
+            showError(error.data.error);
+            router.replace("/bookstore/carts");
+        }
+    })
+
+    function handleOrder() {
+        const order = {
+            ...orders,
+            location: {
+                latitude: location.latitude,
+                longitude: location.longitude,
+                display_name: watch("address"),
+            },
+            userDtls: {
+                deliveryname: watch("name"),
+                deliveryphone: watch("phone"),
+            }
+        };
+        bookOrder(order);
+    }
+
     return (
         <div className="grid grid-cols-[0.8fr_1fr] p-4 overflow-y-auto w-full h-full bg-(--background) rounded-xl">
-            <div className="left flex flex-col gap-3 w-fit">
-                <h3 className="text-3xl font-semibold capitalize font-serif">Ordered Books</h3>
-                <div className="orders flex gap-3 items-center shadow-md p-3 rounded-xl shadow-(color:--shadow) w-[500px] flex-wrap">
-                    {previewBooks.map((item) => {
-                        return (
-                            <div key={item.bookId} className="h-27.5 w-27.5">
-                                <img src={item.bookUrl} className="h-full w-full rounded-xl object-cover" />
+            <div className="left flex flex-col gap-6 w-fit">
+                <div className="books flex flex-col gap-3 w-fit">
+                    <h3 className="text-2xl font-semibold capitalize font-serif">Ordered Books</h3>
+                    <div className="orders flex gap-3 items-center shadow-md p-3 rounded-xl shadow-(color:--shadow) w-125 flex-wrap">
+                        {previewBooks.map((item, index) => {
+                            return (
+                                <div key={index} className="h-24 w-20">
+                                    <img src={item.bookUrl} className="h-full w-full rounded-xl object-cover" />
+                                </div>
+                            )
+                        })}
+                        {orderedBooks.length > 7 && (
+                            <div className="flex h-27.5 w-27.5 flex-col items-center justify-center rounded-xl bg-gray-200 text-gray-700">
+                                <span className="text-3xl font-bold">+{orderedBooks.length - 7}</span>
+                                <span className="text-sm">more</span>
                             </div>
-                        )
-                    })}
-                    {orderedBooks.length > 7 && (
-                        <div className="flex h-27.5 w-27.5 flex-col items-center justify-center rounded-xl bg-gray-200 text-gray-700">
-                            <span className="text-3xl font-bold">+{orderedBooks.length - 7}</span>
-                            <span className="text-sm">more</span>
-                        </div>
-                    )}
+                        )}
+                    </div>
+                    <button className="px-4 py-2 rounded-2xl cursor-pointer bg-(--input-icon) w-[30%] mx-auto font-semibold text-(--background)" onClick={() => router.push("/bookstore/carts")}>Edit Cart</button>
                 </div>
-                <button className="px-4 py-2 rounded-2xl cursor-pointer bg-(--input-icon) w-[30%] mx-auto font-semibold text-(--background)" onClick={() => router.push("/bookstore/carts")}>Edit Cart</button>
+
+                <div className="deliverydtls">
+                    <div className="deliverydtls flex flex-col gap-2">
+                        <h3 className="text-3xl font-semibold font-serif">Order Delivery Details</h3>
+                        <div className="grid grid-flow-row grid-cols-[180px_0.8fr] gap-3 *:p-1 p-2 items-center ">
+                            <span className="font-semibold text-start">Name</span>
+                            {edit ? <input className="border-2 border-(--foreground) outline-none" type="text" {...register("name")} />
+                                : <span className="bg-gray-300 text-black">{watch("name")}</span>}
+                            <span className="font-semibold text-start">Phone</span>
+                            {edit ? <input className="border-2 border-(--foreground) outline-none" type="text" {...register("phone")} />
+                                : <span className="bg-gray-300 text-black">{watch("phone")}</span>}
+                            <span className="font-semibold text-start">Delivery Address</span>
+                            {locLoad ?
+                                <div className="flex items-center gap-2">
+                                    <PuffLoader size={40} />
+                                    <h1>Fetching...</h1>
+                                </div>
+                                :
+                                edit ?
+                                    <input className="border-2 border-(--foreground) outline-none" type="text" {...register("address")} />
+                                    : <span className="bg-gray-300 text-black">{watch("address")}</span>
+                            }
+                            <span className="font-semibold text-start">Delivery By</span>
+                            <span className="bg-gray-300 text-black">{formattedDate(date)}</span>
+                        </div>
+                    </div>
+                    <form onSubmit={handleSubmit(onSubmit)} className={`btns flex items-center justify-around *:font-semibold`}>
+                        <button disabled={locLoad} type="submit"
+                            className={`${!locLoad ? "cursor-pointer" : "cursor-not-allowed"} p-2 rounded-xl border-2 border-(--foreground) text-(--foreground) hover:text-(--background) hover:bg-(--foreground)`}
+
+                        >{edit ? "Save Details" : "Edit Details"}</button>
+                        <span disabled={locLoad} className={`${!locLoad ? "cursor-pointer" : "cursor-not-allowed"} p-2 rounded-xl border-2 text-white bg-[#2c6727] hover:text-[#2c6727] hover:bg-white`}
+                            onClick={handleOrder}
+                        >Proceed to Order</span>
+                    </form>
+                </div>
             </div>
+
             <div className="right flex flex-col">
                 <div className="grid grid-cols-6 gap-3 text-center font-semibold items-center justify-center border-b-2 p-3">
                     <span>Book</span>
@@ -112,13 +226,13 @@ export default function DeliveryDtls() {
                     <span></span>
                     <span>Total</span>
                 </div>
-                <div className="h-[50vh] overflow-y-auto">
+                <div className="max-h-[60vh] overflow-y-auto">
                     {orderedBooks.map((item, index) => (
-                        <div className="flex flex-col">
+                        <div key={index} className="flex flex-col">
                             <div className="grid grid-cols-6 gap-3 p-2 text-center  items-center content-center justify-center " key={index}>
                                 <span>{item.bookName}</span>
                                 <span>{item.bookCount}</span>
-                                <span>X</span>
+                                <span>x</span>
                                 <span>{item.bookPrice}</span>
                                 <span>=</span>
                                 <span>₹{item.bookCount * item.bookPrice}</span>

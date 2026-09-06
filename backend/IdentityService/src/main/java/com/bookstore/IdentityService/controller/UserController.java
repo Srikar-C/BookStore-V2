@@ -5,9 +5,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.bookstore.IdentityService.DTO.request.LoginDTO;
@@ -18,6 +20,7 @@ import com.bookstore.IdentityService.DTO.request.SingleObject;
 import com.bookstore.IdentityService.DTO.response.ResponseDTO;
 import com.bookstore.IdentityService.service.UserService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
@@ -29,9 +32,14 @@ public class UserController {
     @Autowired
     private UserService service;
 
-    @GetMapping
-    public String Test() {
-        return "hello";
+    // @GetMapping
+    // public String Test() {
+    // return "hello";
+    // }
+
+    @GetMapping("dummy/{count}/{role}")
+    public String insertDummy(@PathVariable Integer count, @PathVariable String role) {
+        return service.insertDummy(count, role);
     }
 
     @PostMapping("/login")
@@ -63,4 +71,18 @@ public class UserController {
     public ResponseEntity<ResponseDTO> resetPassword(@RequestBody ResetDTO request) {
         return service.resetPassword(request);
     }
+
+    // @GetMapping
+    // public ResponseEntity<ResponseDTO> getAllUsers(HttpServletRequest http) {
+    // return service.getAllUsers(http);
+    // }
+
+    @GetMapping
+    public ResponseEntity<ResponseDTO> getAllUsersPaged(@RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "USER") String role,
+            HttpServletRequest http) {
+        return service.getAllUsers(page, size, role, http);
+    }
+
 }

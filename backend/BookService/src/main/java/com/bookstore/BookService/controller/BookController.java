@@ -6,12 +6,14 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.bookstore.BookService.DTO.request.OrderCount;
 import com.bookstore.BookService.DTO.request.SingleObject;
-import com.bookstore.BookService.DTO.request.UserBookCount;
 import com.bookstore.BookService.DTO.response.ResponseDTO;
 import com.bookstore.BookService.model.Books;
 import com.bookstore.BookService.service.BookService;
@@ -31,9 +33,27 @@ public class BookController {
     // return "books";
     // }
 
-    @PostMapping
-    public ResponseEntity<ResponseDTO> getAllBooks(@RequestBody UserBookCount request) {
-        return service.getAllBooks(request);
+    @GetMapping("dummy")
+    public String insertDummy() {
+        return service.insertDummy();
+    }
+
+    // get books with cart
+    // @PostMapping
+    // public ResponseEntity<ResponseDTO> getAllBooks(@RequestBody UserBookCount
+    // request) {
+    // return service.getAllBooks(request);
+    // }
+
+    @GetMapping("all")
+    public ResponseEntity<ResponseDTO> getAllBooks() {
+        return service.getAllBooks();
+    }
+
+    @GetMapping
+    public ResponseEntity<ResponseDTO> getAllBooks(@RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size) {
+        return service.getAllBooks(page, size);
     }
 
     @PostMapping("book")
@@ -54,6 +74,11 @@ public class BookController {
     @PostMapping("suggestions")
     public ResponseEntity<ResponseDTO> getSuggestions(@RequestBody SingleObject request) {
         return service.getSuggestions(request);
+    }
+
+    @PutMapping
+    public ResponseEntity<ResponseDTO> updateBooksAsPerOrder(@RequestBody OrderCount request) {
+        return service.updateBookCounts(request);
     }
 
 }

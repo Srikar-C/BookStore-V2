@@ -6,27 +6,45 @@ export const useUserStore = create((set) => ({
     clearUser: () => set({ user: null })
 }))
 
+
 export const useBookStore = create((set) => ({
     books: [],
     categories: [],
     setBooks: (books) => set({ books }),
-    setCategories: (categories) => set({ categories })
+    setCategories: (categories) => set({ categories }),
+    clearBooks: () => set({ books: null }),
+    clearCategories: () => set({ categories: null }),
 }));
 
-export const useCartItemsStore = create((set) => ({
-    cartItems: [],
 
-    setCartItems: (cartItems) => set({ cartItems }),
+export const useCartStore = create((set) => ({
+    carts: [],
 
-    incrementCartItem: (book, userid) => set((state) => ({
-        cartItems: state.cartItems.map((item) => (
-            item.bookId === book.id ? { ...item, userid: userid, count: item.count + 1 } : item
+    setCarts: (carts) => set({ carts }),
+
+    incrementCartItem: (book, userid, newCount) => set((state) => ({
+        carts: state.carts.map((item) => (
+            item.bookId === book.id ? { ...item, userid: userid, count: newCount } : item
         ))
     })),
 
-    decrementCartItem: (book, userid) => set((state) => ({
-        cartItems: state.cartItems.map((item) => (
-            item.bookId === book.id ? { ...item, userid: userid, count: item.count - 1 } : item
+    decrementCartItem: (book, userid, newCount) => set((state) => ({
+        carts: state.carts.map((item) => (
+            item.bookId === book.id ? { ...item, userid: userid, count: newCount } : item
         ))
     })),
+
+    customCartItem: (book, userid, count) => ((state) => ({
+        carts: state.carts.map((item) => (
+            item.bookId === book.id ? { ...item, userid: userid, count: count } : item
+        ))
+    })),
+
+    clearCarts: () => set({ carts: null })
+}))
+
+export const useWishListStore = create((set) => ({
+    wishlist: [],
+    setWishlist: (wishlist) => set({ wishlist }),
+    clearWishlist: () => set({ wishlist: [] })
 }))

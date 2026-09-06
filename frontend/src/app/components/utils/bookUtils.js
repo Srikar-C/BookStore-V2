@@ -1,7 +1,19 @@
 import useFetch from "@/app/hooks/useFetch";
 
-export function getAllBooks(cartItems) {
-    return useFetch("post", process.env.NEXT_PUBLIC_API_Book, process.env.NEXT_PUBLIC_MAPPING_Book, "", { books: cartItems }, false);
+// get with carts
+// export function getAllBooks(cartItems) {
+//     return useFetch("post", process.env.NEXT_PUBLIC_API_Book, process.env.NEXT_PUBLIC_MAPPING_Book, "", { books: cartItems }, false);
+// }
+
+//get without carts
+export function getAllBooks() {
+    return useFetch("get", process.env.NEXT_PUBLIC_API_Book, process.env.NEXT_PUBLIC_MAPPING_Book, "all", "", false);
+}
+
+//get without carts with paging
+export function getPagedBooks(pageNumber, pageSize) {
+    console.log("FD", pageNumber, pageSize);
+    return useFetch("get", process.env.NEXT_PUBLIC_API_Book, process.env.NEXT_PUBLIC_MAPPING_Book, `?page=${pageNumber}&size=${pageSize}`, "", false);
 }
 
 export function getBook(id) {
@@ -16,6 +28,6 @@ export function editBook({ id, request }) {
     return useFetch("post", process.env.NEXT_PUBLIC_API_Book, process.env.NEXT_PUBLIC_MAPPING_Book, id, request, false);
 }
 
-export function getSuggestions(request) {
+export function getBookSuggestions(request) {
     return useFetch("post", process.env.NEXT_PUBLIC_API_Book, process.env.NEXT_PUBLIC_MAPPING_Book, "suggestions", { request }, false);
 }

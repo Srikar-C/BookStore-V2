@@ -3,8 +3,11 @@ package com.bookstore.IdentityService.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.bookstore.IdentityService.DTO.request.OTPDTO;
 import com.bookstore.IdentityService.DTO.response.ResponseDTO;
 import com.bookstore.IdentityService.model.Users;
 import com.bookstore.IdentityService.repository.UserRepository;
@@ -26,11 +29,13 @@ public class AuthService {
     @Autowired
     private UserRepository repo;
 
+    @Autowired
+    private BCryptPasswordEncoder encoder;
+
     public ResponseEntity<ResponseDTO> getCurrentUser(HttpServletRequest http) {
         ResponseDTO response = new ResponseDTO();
         String token = null;
         if (http.getCookies() != null) {
-
             token = getTokenFromCookie(http.getCookies());
         }
         if (token == null) {
@@ -97,4 +102,55 @@ public class AuthService {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    public ResponseEntity<ResponseDTO> passwordVerify(OTPDTO request, HttpServletRequest http) {
+        ResponseDTO response = new ResponseDTO();
+        String token = null;
+        if (http.getCookies() != null) {
+            token = getTokenFromCookie(http.getCookies());
+        }
+        if (token == null) {
+            response = help.error("Not Logged In");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+        try {
+            String userid = jwt.extractUserId(token);
+            Users user = repo.findById(userid).orElse(new Users());
+            if (user == null) {
+                response = help.error("No User");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+            if (!encoder.matches(request.getEmail(), user.getPassword())) {
+                response = help.error("Incorrect Password");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
+            response = help.success("Password Correct", null);
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        } catch (Exception e) {
+            response = help.error(e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseEntity<ResponseDTO> deleteUser(HttpServletRequest http) {
+        ResponseDTO response = new ResponseDTO();
+        String token = null;
+        if (http.getCookies() != null) {
+            token = getTokenFromCookie(http.getCookies());
+        }
+        if (token == null) {
+            response = help.error("Not Logged In");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+        try {
+            System.out.println("user token: " + token);
+            String userid = jwt.extractUserId(token);
+            repo.deleteById(userid);
+            response = help.success("Identity Deleted", null);
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        } catch (Exception e) {
+            response = help.error(e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
 }

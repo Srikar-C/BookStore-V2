@@ -40,6 +40,9 @@ export default function Login() {
             router.replace("/bookstore");
             return;
         }
+        else {
+            router.replace("/user/login");
+        }
     }, [existing, isError, isSuccess, router])
 
     const { mutate: logining, isPending } = useMutation({
@@ -71,7 +74,7 @@ export default function Login() {
             <form onSubmit={handleSubmit(onSubmit)} className="inputs flex flex-col gap-5">
                 <InputBox label="Username/Email" field="name" icon={<FaUserAlt />} loading={isPending} register={register} setFocusedField={setFocusedField} errors={errors.name?.message} color={nameColor} type="text" />
                 <InputBox label="Password" field="password" icon={<MdOutlinePassword />} loading={isPending} register={register} setFocusedField={setFocusedField} errors={errors.password?.message} color={passwordColor} type="password" />
-                <DevTool control={control} />
+                {/* <DevTool control={control} /> */}
                 <button type="submit"
                     disabled={isPending}
                     title={!isPending ? "Please Fill All Details" : "Login"}
