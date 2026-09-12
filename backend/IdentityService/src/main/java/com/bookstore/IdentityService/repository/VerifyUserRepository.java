@@ -12,4 +12,6 @@ public interface VerifyUserRepository extends JpaRepository<VerifyUsers, String>
 
     VerifyUsers findByEmail(String email);
 
+    void deleteByEmail(String email);
+
 }

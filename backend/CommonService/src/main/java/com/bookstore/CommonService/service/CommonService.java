@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.bookstore.CommonService.DTO.request.SuggestionDTO;
 import com.bookstore.CommonService.DTO.response.ResponseDTO;
@@ -163,6 +164,20 @@ public class CommonService {
             List<Suggestion> suggestions = suggestRepo.findAll();
             System.out.println("Got auggestions: " + suggestions.toString());
             response = help.success("Fetched suggestions", suggestions);
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        } catch (Exception e) {
+            response = help.error(e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseEntity<ResponseDTO> deleteWishlist(String userid) {
+        ResponseDTO response = new ResponseDTO();
+        System.out.println("userid: " + userid);
+        try {
+            wishRepo.deleteByUserid(userid);
+            response = help.success("Fetched suggestions", null);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
             response = help.error(e);

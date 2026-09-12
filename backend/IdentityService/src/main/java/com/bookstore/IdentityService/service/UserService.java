@@ -1,5 +1,6 @@
 package com.bookstore.IdentityService.service;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -23,13 +24,17 @@ import com.bookstore.IdentityService.DTO.request.OTPDTO;
 import com.bookstore.IdentityService.DTO.request.RegisterDTO;
 import com.bookstore.IdentityService.DTO.request.ResetDTO;
 import com.bookstore.IdentityService.DTO.request.SingleObject;
+import com.bookstore.IdentityService.DTO.request.UserIdOrderCountDTO;
 import com.bookstore.IdentityService.DTO.response.ResponseDTO;
 import com.bookstore.IdentityService.DTO.response.SubResponse;
+import com.bookstore.IdentityService.DTO.response.UserOrderDTO;
+import com.bookstore.IdentityService.DTO.response.VerifyDTO;
 import com.bookstore.IdentityService.model.Users;
 import com.bookstore.IdentityService.model.VerifyUsers;
 import com.bookstore.IdentityService.repository.UserRepository;
 import com.bookstore.IdentityService.repository.VerifyUserRepository;
 import com.bookstore.IdentityService.util.Helper;
+import com.bookstore.IdentityService.util.OrderFeign;
 import com.bookstore.IdentityService.util.RegisterUtil;
 
 import jakarta.servlet.http.Cookie;
@@ -56,6 +61,9 @@ public class UserService {
 
     @Autowired
     private JWTService jwt;
+
+    @Autowired
+    private OrderFeign orderFeign;
 
     @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<ResponseDTO> register(RegisterDTO request) {
@@ -127,6 +135,10 @@ public class UserService {
                 response = help.error("No User exist with this Email");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
             }
+            if (!request.getOtp().toString().equals(verifyUser.getOtp())) {
+                response = help.error("Invalid OTP");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
             if (verifyUser.isUsed()) {
                 response = help.error("OTP already Used, Please request again");
                 return ResponseEntity.status(HttpStatus.GONE).body(response);
@@ -136,10 +148,6 @@ public class UserService {
             if (time.getSeconds() >= 301) {
                 response = help.error("OTP Expired, Request again");
                 return ResponseEntity.status(HttpStatus.GONE).body(response);
-            }
-            if (!request.getOtp().toString().equals(verifyUser.getOtp())) {
-                response = help.error("Invalid OTP");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
 
             verifyUser.setUsed(true);
@@ -189,7 +197,11 @@ public class UserService {
             verifyUsers.setRequestCount(verifyUsers.getRequestCount() + 1);
             verifyUsers.setUsed(false);
             verifyUserRepo.save(verifyUsers);
-            response = help.success("OTP Sent Successfully", verifyUsers);
+
+            VerifyDTO verify = new VerifyDTO();
+            verify.setToken(verifyUsers.getToken());
+
+            response = help.success("OTP Sent Successfully", verify);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
             response = help.error(e);
@@ -298,13 +310,14 @@ public class UserService {
         return null;
     }
 
-    public String insertDummy(Integer count, String role) {
+    public String insertDummy(long count, String role) {
         List<Users> users = new ArrayList<>();
-        for (int i = 1; i <= count; i++) {
+        for (long i = 1; i <= count; i++) {
             Users user = new Users();
-            user.setId("USR" + i);
-            user.setName("testuser" + i);
-            user.setEmail("testuser" + i + "@example.com");
+            Long counter = help.generateDummyCounter();
+            user.setId("USR" + counter);
+            user.setName("testuser" + counter);
+            user.setEmail("testuser" + counter + "@example.com");
             user.setPassword(encoder.encode("Password@123"));
             String phone = null;
             Users check = null;
@@ -340,7 +353,37 @@ public class UserService {
             Pageable pageable = PageRequest.of(pageNumber, pageSize);
             Page<Users> users = userRepo.findByRole(role.toUpperCase(), pageable);
             Map<String, Object> result = new HashMap<>();
-            result.put("content", users.getContent());
+            ResponseEntity<ResponseDTO> orderCountResult = null;
+            List<UserOrderDTO> allUsers = new ArrayList<>();
+            for (Users u : users.getContent()) {
+                UserOrderDTO dto = new UserOrderDTO();
+                dto.setId(u.getId());
+                dto.setEmail(u.getEmail());
+                dto.setName(u.getName());
+                dto.setPhone(u.getPhone());
+                dto.setActive(u.isActive());
+                allUsers.add(dto);
+            }
+            List<String> userIds = allUsers.stream().map(UserOrderDTO::getId).toList();
+            UserIdOrderCountDTO userIdOrderCountDTO = new UserIdOrderCountDTO();
+            userIdOrderCountDTO.setUserIds(userIds);
+            orderCountResult = orderFeign.getUserOrderCount(userIdOrderCountDTO);
+            Map<String, BigDecimal> orderCountMap = new HashMap<>();
+            if (orderCountResult.getBody().isSuccess()) {
+                List<Map<String, Object>> orderCountList = (List<Map<String, Object>>) orderCountResult.getBody()
+                        .getData();
+                System.out.println("Order Count List: " + orderCountList);
+                for (Map<String, Object> orderCount : orderCountList) {
+                    String userId = (String) orderCount.get("userId");
+                    BigDecimal count = new BigDecimal(orderCount.get("orderCount").toString());
+                    orderCountMap.put(userId, count);
+                }
+            }
+            for (UserOrderDTO user : allUsers) {
+                BigDecimal count = orderCountMap.getOrDefault(user.getId(), BigDecimal.ZERO);
+                user.setOrderCount(count);
+            }
+            result.put("content", allUsers);
             result.put("pageNumber", users.getNumber());
             result.put("totalPages", users.getTotalPages());
             result.put("totalElements", users.getTotalElements());
@@ -353,6 +396,43 @@ public class UserService {
             response = help.error(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    public ResponseEntity<ResponseDTO> accessPrivilege(String userid, HttpServletRequest http) {
+        ResponseDTO response = new ResponseDTO();
+        String token = null;
+        if (http.getCookies() != null) {
+            token = getTokenFromCookie(http.getCookies());
+        }
+        if (token == null) {
+            response = help.error("Not Logged In");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+        try {
+            String crntUserid = jwt.extractUserId(token);
+            Users user = userRepo.findById(crntUserid).orElse(new Users());
+            if (user == null) {
+                response = help.error("Not Logged In");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+            if (!user.getRole().toString().equals("SUPERUSER")) {
+                response = help.error("No Access");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+            }
+            Users adminUser = userRepo.findById(userid).orElse(new Users());
+            if (adminUser == null) {
+                response = help.error("User Not Found");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+            adminUser.setActive(!adminUser.isActive());
+            userRepo.save(adminUser);
+            response = help.success("Access Updated", null);
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        } catch (Exception e) {
+            response = help.error(e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+
     }
 
 }

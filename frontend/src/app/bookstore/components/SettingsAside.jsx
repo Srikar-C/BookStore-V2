@@ -11,7 +11,8 @@ import InputBox from "@/app/user/components/InputBox";
 import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import { deleteUser, passwordVerify } from "@/app/components/utils/userUtils";
-import { showError } from "@/app/components/utils/showToasts";
+import { showError, showSuccess } from "@/app/components/utils/showToasts";
+import { useBookStore, useCartStore, useUserStore, useWishListStore } from "@/app/hooks/useStore";
 
 export default function SettingsAside() {
 
@@ -24,6 +25,10 @@ export default function SettingsAside() {
         }
     });
     const [delte, setDelte] = useState(false);
+    const { clearCarts } = useCartStore();
+    const { clearBooks, clearCategories } = useBookStore();
+    const { clearWishlist } = useWishListStore();
+    const { clearUser } = useUserStore();
 
     const { mutate: verify, isPending: verifyPending } = useMutation({
         mutationFn: passwordVerify,
@@ -41,6 +46,13 @@ export default function SettingsAside() {
         mutationFn: deleteUser,
         onSuccess: (response) => {
             console.log(response);
+            clearUser();
+            clearBooks();
+            clearCarts();
+            clearCategories();
+            clearWishlist();
+            showSuccess("Successfully Account Deleted");
+            router.replace("/user/login");
         },
         onError: (error) => {
             console.log(error);
@@ -77,12 +89,12 @@ export default function SettingsAside() {
                 aria-labelledby="modal-modal-title"
                 aria-describedby="modal-modal-description"
             >
-                <form onSubmit={handleSubmit(onSubmit)} className="rounded-xl w-100 h-65 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-3 flex flex-col gap-5">
+                <form onSubmit={handleSubmit(onSubmit)} className="rounded-xl w-100 h-70 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-(--background) text-(--foreground) p-5 flex flex-col gap-5 border-2 border-(--foreground)">
 
                     {!delte ? <h4 className="text-2xl font-semibold">Please confirm your password to delete your account</h4> :
                         <div className="flex flex-col gap-3">
                             <h4 className="text-2xl font-semibold">Please Delete your Account</h4>
-                            <p className="text-slate-700">This leads in deleting entire data including orders and carts</p>
+                            <p className="text-(--section)">This leads in deleting entire data including orders and carts</p>
 
                         </div>}
                     {!delte && <InputBox label="Password" field="password" icon={<MdOutlinePassword />} register={register} setFocusedField={null} type="password" />}

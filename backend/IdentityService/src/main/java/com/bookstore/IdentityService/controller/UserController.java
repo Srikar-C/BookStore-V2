@@ -85,4 +85,9 @@ public class UserController {
         return service.getAllUsers(page, size, role, http);
     }
 
+    @GetMapping("{userid}")
+    public ResponseEntity<ResponseDTO> accessPrivilege(@PathVariable String userid, HttpServletRequest http) {
+        return service.accessPrivilege(userid, http);
+    }
+
 }

@@ -5,6 +5,7 @@ import BookCard from "./components/BookCard";
 import Pagination from "@mui/material/Pagination";
 import { useQuery } from "@tanstack/react-query";
 import { getPagedBooks } from "../components/utils/bookUtils";
+import BookSkeleton from "../components/skeletons/BookSkeleton";
 
 export default function BookStoreLandingPage() {
 
@@ -48,6 +49,10 @@ export default function BookStoreLandingPage() {
             (book) => !(book.quantity > 0 && book.count > book.quantity)
         )
     ];
+
+    if (isPending) {
+        return <BookSkeleton />
+    }
 
     return (
         <div className="grid grid-rows-[auto_1fr_auto] items-start overflow-y-auto w-full h-full bg-(--background) rounded-xl p-3">

@@ -10,6 +10,7 @@ import { showInfo } from "../components/utils/showToasts";
 import { getAllCarts } from "../components/utils/cartUtils";
 import { getAllBooks } from "../components/utils/bookUtils";
 import { getWishlist } from "../components/utils/commonUtils";
+import BookStoreSkeleton from "../components/skeletons/BookStoreSkeleton";
 
 export default function BookStoreLayout({ children }) {
 
@@ -25,6 +26,8 @@ export default function BookStoreLayout({ children }) {
         queryKey: ["currentUser"],
         queryFn: getCurrentUser,
         select: (response) => response?.data,
+        refetchInterval: 5 * 60 * 1000,
+        refetchIntervalInBackground: true,
     });
 
     useEffect(() => {
@@ -95,7 +98,7 @@ export default function BookStoreLayout({ children }) {
     }, [wishlistData, wishlistSuccess, setWishlist]);
 
     if (userPending && !user) {
-        return <div>...Loading</div>
+        return <BookStoreSkeleton />
     }
 
     // if (bookPending || cartPending) {

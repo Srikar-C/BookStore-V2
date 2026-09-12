@@ -63,7 +63,7 @@ export default function TopNavBar() {
     }
 
     return (
-        <div className="top flex items-center gap-3 justify-between bg-(--background) px-5 py-2 w-full rounded-lg">
+        <div className="top flex items-center gap-3 justify-between bg-(--background) px-5 py-2 w-full rounded-lg h-[8vh]">
             <div className="left">
                 <h2 className="text-xl font-semibold">Welcome Back!</h2>
             </div>

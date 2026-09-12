@@ -47,3 +47,7 @@ export function deleteUser() {
 export function allUsers(pageNumber, pageSize, role) {
     return useFetch("get", process.env.NEXT_PUBLIC_API_User, process.env.NEXT_PUBLIC_MAPPING_User, `?page=${pageNumber}&size=${pageSize}&role=${role}`, "", true);
 }
+
+export function access(userid) {
+    return useFetch("get", process.env.NEXT_PUBLIC_API_User, process.env.NEXT_PUBLIC_MAPPING_User, userid, "", true);
+}

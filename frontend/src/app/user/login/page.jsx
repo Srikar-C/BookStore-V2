@@ -12,6 +12,7 @@ import { getColor } from "@/app/components/utils/FunctionalUtils";
 import { getCurrentUser, login } from "@/app/components/utils/userUtils";
 import { showError, showSuccess } from "@/app/components/utils/showToasts";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import UserSkeleton from "@/app/components/skeletons/UserSkeleton";
 
 export default function Login() {
 
@@ -36,13 +37,11 @@ export default function Login() {
 
     useEffect(() => {
         if (existing) return;
-        if (isSuccess && data?.success && data?.data) {
+        if (!existing && isSuccess && data?.success && data?.data) {
             router.replace("/bookstore");
             return;
         }
-        else {
-            router.replace("/user/login");
-        }
+        router.replace("/user/login");
     }, [existing, isError, isSuccess, router])
 
     const { mutate: logining, isPending } = useMutation({
@@ -61,8 +60,10 @@ export default function Login() {
     async function onSubmit(data) {
         if (isPending) return;
         logining(data);
-        setTimeout(() => {
-        }, 10000)
+    }
+
+    if (existing) {
+        return <UserSkeleton times={2} />
     }
 
     return (

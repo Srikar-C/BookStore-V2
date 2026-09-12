@@ -122,5 +122,96 @@ router.post("/orders/orderId", async (req, res) => {
     }
 })
 
+router.post("/orders/count", async (req, res) => {
+    const { userid } = req.body;
+    console.log("userid for count: ", userid);
+    try {
+
+        const result = await orderModel.aggregate([
+            {
+                $match: { userId: userid },
+            },
+            {
+                $project: {
+                    bookCount: { $size: "$books" }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalBooks: { $sum: "$bookCount" },
+                    totalOrders: { $sum: 1 }
+                }
+            }
+        ])
+
+        const data = result[0] || {
+            totalBooks: 0, totalOrders: 0,
+        }
+
+        // const count = await orderModel.countDocuments({ userId: userid });
+
+        // const orders = await orderModel.find({ userId: userid });
+        // console.log("all units: ", orders);
+
+        // var units = 0;
+        // for (var i = 0; i < orders.length; i++) {
+        //     units += orders[i].books.length;
+        // }
+
+        // console.log("total units: ", units);
+
+        return res.status(200).json({ success: true, message: "Order count fetched successfully", data: data, error: null });
+    } catch (error) {
+        console.error("Error in fetching user order: ", error);
+        return res.status(500).json({ success: false, message: "Error", data: null, error: error });
+    }
+})
+
+router.delete("/orders/:userid", async (req, res) => {
+    const { userid } = req.params;
+    console.log("delte userid: ", userid);
+    try {
+        const orders = await orderModel.deleteMany({ userId: userid });
+        return res.status(200).json({ success: true, message: "Orders Deleted", data: null, error: null });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "Error", data: null, error: error });
+    }
+})
+
+router.post("/orders/countOrders", async (req, res) => {
+
+    const { userIds } = req.body;
+    console.log("order count of user ", userIds);
+    try {
+        const result = await orderModel.aggregate([
+            {
+                $match: {
+                    userId: { $in: userIds }
+                }
+            },
+            {
+                $group: {
+                    _id: "$userId",
+                    totalElements: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const finalResult = userIds.map((userId) => {
+            const userOrder = result.find(item => item._id == userId);
+            return {
+                userId: userId,
+                orderCount: userOrder ? userOrder.totalElements : 0,
+            }
+        })
+
+        console.log("result of order:", finalResult);
+        return res.status(200).json({ success: true, message: "Orders Count Fetched", data: finalResult, error: null });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "Error", data: null, error: error });
+    }
+})
+
 
 export default router;

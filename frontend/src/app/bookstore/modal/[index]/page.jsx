@@ -84,21 +84,21 @@ export default function Modal() {
     async function updatingCart(newCount, action) {
         try {
             console.log(user?.id, bookData.id, newCount);
-            const currentCart = u.getState().carts;
+            const currentCart = useCartStore.getState().carts;
             console.log("newcart", currentCart);
             await updateCart(user?.id, bookData.id, newCount);
             setCustomCount(newCount);
         } catch (error) {
             if (action === "increment") {
-                decrementCartItem(book, user.id);
+                decrementCartItem(bookData, user.id);
             }
 
             if (action === "decrement") {
-                incrementCartItem(book, user.id);
+                incrementCartItem(bookData, user.id);
             }
 
             if (action === "custom") {
-                customCartItem(book, user.id, count);
+                customCartItem(bookData, user.id, count);
             }
             showError("Couldn't update Cart");
             console.log("Error in updating cart: ", error);
@@ -110,7 +110,7 @@ export default function Modal() {
     }
 
     function handleIncrement() {
-        if (customCount + 1 >= bookData.quantity) {
+        if (customCount + 1 > bookData.quantity) {
             showError("No More Stocks");
             return;
         }

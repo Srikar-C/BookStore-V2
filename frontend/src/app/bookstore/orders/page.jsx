@@ -1,16 +1,14 @@
 "use client"
 
 import { getOrders } from "@/app/components/utils/orderUtils";
-import { useBookStore, useUserStore } from "@/app/hooks/useStore"
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
+import { useUserStore } from "@/app/hooks/useStore"
+import { useInfiniteQuery } from "@tanstack/react-query"
 import OrderCard from "../components/OrderCard";
-import { useState } from "react";
+import OrderSkeleton from "@/app/components/skeletons/OrderSkeleton";
 
 export default function Orders() {
 
     const { user } = useUserStore();
-    const { books } = useBookStore();
-    const [pageNumber, setPageNumber] = useState(0);
 
     //without pagination
     // const { data, isSuccess, isPending } = useQuery({
@@ -37,7 +35,7 @@ export default function Orders() {
     })
 
     if (isPending) {
-        return <div>...Loading</div>
+        return <OrderSkeleton />
     }
 
     const orders = data?.pages?.flatMap(

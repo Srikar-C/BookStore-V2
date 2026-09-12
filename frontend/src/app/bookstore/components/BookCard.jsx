@@ -175,7 +175,7 @@ export default function BookCard({ book, mode }) {
                 <div className="absolute -left-20 top-0 -rotate-45 bg-red-700 text-white w-100 flex text-center p-1 z-10 pl-20">
                     Not Available
                 </div> :
-                book.quantity < customCount ?
+                book.quantity < customCount && user?.role === "USER" ?
                     <div className="absolute -left-25 top-0 -rotate-45 bg-green-700 text-white w-100 flex text-center pl-25 p-1 z-10">
                         Invalid Stock
                     </div> : null
@@ -191,7 +191,7 @@ export default function BookCard({ book, mode }) {
                 <div className={`buttons grid ${mode !== "cart" ? "grid-cols-[1fr_0.2fr]" : "grid-cols-1"} gap-2 items-center w-full mt-auto`}>
                     <div className="addTocart w-full border-2 border-(--foreground) justify-center flex p-1 rounded-xl cursor-pointer"
                     >
-                        {user?.role === "ADMIN" ?
+                        {user?.role === "ADMIN" || user?.role === "SUPERUSER" ?
                             <span onClick={handleEdit} className="w-full text-center">Edit Book</span> :
                             book.quantity === 0 ? mode === "display" ?
                                 <span className="w-full text-center">Not Available</span> :

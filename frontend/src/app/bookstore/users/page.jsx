@@ -1,9 +1,13 @@
 "use client"
-import { useAppContext } from "@/app/components/common/AppContext";
-import { allUsers } from "@/app/components/utils/userUtils"
+
+import { showError } from "@/app/components/utils/showToasts";
+import { access, allUsers } from "@/app/components/utils/userUtils"
+import { useUserStore } from "@/app/hooks/useStore";
 import Pagination from "@mui/material/Pagination";
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
+import { ImCross } from "react-icons/im";
+import { TiTick } from "react-icons/ti";
 
 export default function Users() {
 
@@ -12,12 +16,14 @@ export default function Users() {
     const [users, setUsers] = useState([]);
     const [role, setRole] = useState("user");
     const [dropdown, setDropdown] = useState(false);
+    const queryClient = useQueryClient();
+    const { user } = useUserStore();
 
     const { data, isPending } = useQuery({
         queryKey: ["allUsers", pageNumber, pageSize, role],
         queryFn: () => allUsers(pageNumber, pageSize, role),
         select: (response) => response?.data,
-    })
+    });
 
     useEffect(() => {
         if (isPending) return;
@@ -25,12 +31,34 @@ export default function Users() {
             console.log("user list: ", data);
             setUsers(data?.data?.content);
         }
+        else {
+            showError(data?.error);
+            console.log("Data for userS:", data);
+        }
     }, [isPending, data])
+
+    const { mutate, isPending: accessPending } = useMutation({
+        mutationFn: access,
+        onSuccess: (response) => {
+            console.log(response);
+            queryClient.invalidateQueries({
+                queryKey: ["allUsers", pageNumber, pageSize, role]
+            });
+        },
+        onError: (error) => {
+            console.log(error);
+        }
+    })
 
     function handleRole(prop) {
         setRole(prop);
         setDropdown(!dropdown);
         setPageNumber(0);
+    }
+
+    function handleAdminAccess(id) {
+        if (accessPending) return;
+        mutate(id);
     }
 
     return (
@@ -59,23 +87,35 @@ export default function Users() {
                     </div>
                 </div>
             </div>
-            <div className="grid grid-cols-5 gap-4 p-2 border-b-2 text-center *:font-semibold mx-10">
+            <div className={`grid ${role == "user" ? "grid-cols-6" : "grid-cols-5"} gap-4 p-2 border-b-2 text-center *:font-semibold mx-10`}>
                 <span>UserId</span>
                 <span>Name</span>
                 <span>Phone</span>
                 <span>Email</span>
-                <span>No of Orders</span>
+                <span>{role == "user" ? "No of Orders" : "Access & Privileges"}</span>
+                {role == "user" && <span>BlockList</span>}
             </div>
             <div className="loop mx-10">
                 {users?.map((item, index) => {
                     return (
                         <div key={index} className="flex flex-col gap-2">
-                            <div className="grid grid-cols-5 gap-4 p-2 text-center">
+                            <div className={`grid ${role == "user" ? "grid-cols-6" : "grid-cols-5"} gap-4 p-2 text-center`}>
                                 <span>{item.id}</span>
                                 <span>{item.name}</span>
                                 <span>{item.phone}</span>
                                 <span>{item.email}</span>
-                                <span>No of Orders</span>
+                                {role == "user" ? item.orderCount :
+                                    user?.role == "SUPERUSER" ? item.active ?
+                                        <div className="flex gap-2 items-center mx-auto">
+                                            <span className="bg-green-700 p-2 text-white rounded-xl">Access Granted</span>
+                                            <ImCross className="text-red-700 text-xl cursor-pointer" onClick={() => handleAdminAccess(item.id)} />
+                                        </div> :
+                                        <div className="flex gap-2 items-center mx-auto">
+                                            <span className="bg-red-700 p-2 text-white rounded-xl">Access Revoked</span>
+                                            <TiTick className="text-green-700 text-xl cursor-pointer" onClick={() => handleAdminAccess(item.id)} />
+                                        </div> : <span className={`${item.active ? "bg-green-700" : "bg-red-700"} p-2 text-white rounded-xl`}>{item.active ? "Access Granted" : "Access Revoked"}</span>
+                                }
+                                {role === "user" && <span>Block</span>}
                             </div>
                             <hr className="text-(--hr)" />
                         </div>

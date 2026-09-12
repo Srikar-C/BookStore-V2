@@ -5,6 +5,24 @@ import { flushSync } from "react-dom"
 
 import { cn } from "@/lib/utils"
 
+const THEME_KEY = "theme"
+
+const getSavedTheme = () => {
+  if (typeof window === "undefined") return null
+
+  const savedTheme = localStorage.getItem(THEME_KEY)
+
+  if (savedTheme === "light" || savedTheme === "dark") {
+    return savedTheme
+  }
+
+  return null
+}
+
+const applyThemeToDocument = (theme) => {
+  document.documentElement.classList.toggle("dark", theme === "dark")
+}
+
 function polygonCollapsed(point, vertexCount) {
   const pairs = Array.from({ length: vertexCount }, () => point).join(", ")
   return `polygon(${pairs})`
@@ -131,11 +149,16 @@ export const AnimatedThemeToggler = ({
   useEffect(() => {
     if (isControlled) return
 
+    const savedTheme = getSavedTheme()
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+    const initialTheme = savedTheme ?? (prefersDark ? "dark" : "light")
+
+    applyThemeToDocument(initialTheme)
+    setInternalIsDark(initialTheme === "dark")
+
     const updateTheme = () => {
       setInternalIsDark(document.documentElement.classList.contains("dark"))
     }
-
-    updateTheme()
 
     const observer = new MutationObserver(updateTheme)
     observer.observe(document.documentElement, {
@@ -177,12 +200,12 @@ export const AnimatedThemeToggler = ({
       const newTheme = !isDark
       // Always toggle the class synchronously so the View Transitions API
       // snapshots the new theme inside the startViewTransition callback.
-      document.documentElement.classList.toggle("dark")
+      applyThemeToDocument(newTheme ? "dark" : "light")
       if (isControlled) {
         onThemeChange?.(newTheme ? "dark" : "light")
       } else {
         setInternalIsDark(newTheme)
-        localStorage.setItem("theme", newTheme ? "dark" : "light")
+        localStorage.setItem(THEME_KEY, newTheme ? "dark" : "light")
       }
     }
 

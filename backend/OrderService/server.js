@@ -26,5 +26,5 @@ mongoose
 
 
 app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
+    console.log(`Order Server is running on http://localhost:${port}`);
 });

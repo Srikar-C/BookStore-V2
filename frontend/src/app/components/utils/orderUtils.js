@@ -17,3 +17,7 @@ export function getOrders(userid, pageNumber) {
 export function getOrderById(orderid) {
     return useFetch("post", process.env.NEXT_PUBLIC_API_Order, process.env.NEXT_PUBLIC_MAPPING_Order, "orderId", { orderid }, false);
 }
+
+export function countOrders(userid) {
+    return useFetch("post", process.env.NEXT_PUBLIC_API_Order, process.env.NEXT_PUBLIC_MAPPING_Order, "count", { userid }, false);
+}

@@ -45,7 +45,7 @@ public class AuthController {
     }
 
     @GetMapping
-    public ResponseEntity<ResponseDTO> deleteUser(HttpServletRequest http) {
-        return service.deleteUser(http);
+    public ResponseEntity<ResponseDTO> deleteUser(HttpServletRequest req, HttpServletResponse resp) {
+        return service.deleteUser(req, resp);
     }
 }

@@ -11,7 +11,11 @@ import com.bookstore.IdentityService.DTO.request.OTPDTO;
 import com.bookstore.IdentityService.DTO.response.ResponseDTO;
 import com.bookstore.IdentityService.model.Users;
 import com.bookstore.IdentityService.repository.UserRepository;
+import com.bookstore.IdentityService.repository.VerifyUserRepository;
+import com.bookstore.IdentityService.util.CartFeign;
 import com.bookstore.IdentityService.util.Helper;
+import com.bookstore.IdentityService.util.OrderFeign;
+import com.bookstore.IdentityService.util.WishlistFeign;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,7 +34,22 @@ public class AuthService {
     private UserRepository repo;
 
     @Autowired
+    private VerifyUserRepository verifyRepo;
+
+    @Autowired
     private BCryptPasswordEncoder encoder;
+
+    // @Autowired
+    // private RestClient rest;
+
+    @Autowired
+    private OrderFeign orderFeign;
+
+    @Autowired
+    private CartFeign cartFeign;
+
+    @Autowired
+    private WishlistFeign wishlistFeign;
 
     public ResponseEntity<ResponseDTO> getCurrentUser(HttpServletRequest http) {
         ResponseDTO response = new ResponseDTO();
@@ -43,8 +62,13 @@ public class AuthService {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
         try {
-            String username = jwt.extractUsername(token);
-            Users user = repo.findByName(username);
+            // String username = jwt.extractUsername(token);
+            String email = jwt.extractEmail(token);
+            Users user = repo.findByEmail(email);
+            if (user == null) {
+                response = help.error("User Not Exist");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
             response = help.success("User Fetched", user);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
@@ -75,7 +99,7 @@ public class AuthService {
             }
             String username = jwt.extractUsername(token);
             Users user = repo.findByName(username);
-            if (user.getRole().equals("ADMIN")) {
+            if (user.getRole().equals("SUPERUSER")) {
                 response = help.success("User Fetched", null);
                 return ResponseEntity.status(HttpStatus.OK).body(response);
             } else {
@@ -132,11 +156,11 @@ public class AuthService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public ResponseEntity<ResponseDTO> deleteUser(HttpServletRequest http) {
+    public ResponseEntity<ResponseDTO> deleteUser(HttpServletRequest req, HttpServletResponse resp) {
         ResponseDTO response = new ResponseDTO();
         String token = null;
-        if (http.getCookies() != null) {
-            token = getTokenFromCookie(http.getCookies());
+        if (req.getCookies() != null) {
+            token = getTokenFromCookie(req.getCookies());
         }
         if (token == null) {
             response = help.error("Not Logged In");
@@ -145,7 +169,33 @@ public class AuthService {
         try {
             System.out.println("user token: " + token);
             String userid = jwt.extractUserId(token);
+            String email = jwt.extractEmail(token);
+
+            // rest.delete().uri("http://localhost:8083/orders/" + userid).retrieve();
+
+            ResponseEntity<ResponseDTO> result = null;
+            result = wishlistFeign.deleteWishlist(userid);
+            System.out.println("wishlist result: " + result.toString());
+            if (!result.getBody().isSuccess()) {
+                throw new Exception("Error in Deleting User Account");
+            }
+            result = orderFeign.deleteUserOrders(userid);
+            System.out.println("orders result: " + result.toString());
+            if (!result.getBody().isSuccess()) {
+                throw new Exception("Error in Deleting User Account");
+            }
+            result = cartFeign.deleteCart(userid);
+            System.out.println("carts result: " + result.toString());
+            if (!result.getBody().isSuccess()) {
+                throw new Exception("Error in Deleting User Account");
+            }
+
             repo.deleteById(userid);
+            verifyRepo.deleteByEmail(email);
+            result = logout(resp);
+            if (!result.getBody().isSuccess()) {
+                throw new Exception("Error in Deleting User Account");
+            }
             response = help.success("Identity Deleted", null);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {

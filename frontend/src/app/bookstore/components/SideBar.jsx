@@ -8,7 +8,7 @@ import { RiProfileLine, RiSettingsFill } from "react-icons/ri";
 import { LuBadgeHelp } from "react-icons/lu";
 import { IoMdLogOut } from "react-icons/io";
 import { useAppContext } from "@/app/components/common/AppContext";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { showError } from "@/app/components/utils/showToasts";
 import { logout } from "@/app/components/utils/userUtils";
 import Hamburger from "@/app/components/common/Hamburger";
@@ -21,6 +21,7 @@ export default function SideBar({ sidebarOpen, setSidebarOpen }) {
     const { carts, clearCarts } = useCartStore();
     const { clearBooks, clearCategories } = useBookStore();
     const { clearWishlist } = useWishListStore();
+    const queryClient = useQueryClient();
 
     const cartCount = carts?.filter((item) => item.count > 0).length;
     //  cartItems.reduce((acc, current) => acc + current.count, 0);
@@ -28,11 +29,14 @@ export default function SideBar({ sidebarOpen, setSidebarOpen }) {
     const { mutate } = useMutation({
         mutationFn: logout,
         onSuccess: () => {
+            queryClient.clear();
             clearUser();
             clearBooks();
             clearCarts();
             clearCategories();
             clearWishlist();
+            localStorage.clear();
+            sessionStorage.clear();
             router.replace("/");
         },
         onError: (response) => {
@@ -105,12 +109,12 @@ export default function SideBar({ sidebarOpen, setSidebarOpen }) {
                 </section>
                 <hr className="text-(--hr)" />
 
-                {user?.role == "ADMIN" || user?.role == "SUPERUSER" &&
+                {user?.role != "USER" &&
                     <section className="flex flex-col gap-2 mt-auto">
                         <h3 className="text-sm text-slate-500">MANAGEMENT</h3>
                         <Section icon={<FaBook />} text="Add New Book" click={addNewBook} path="/bookstore/new" url={pathName} />
                     </section>}
-                {user?.role == "ADMIN" || user?.role == "SUPERUSER" && <hr className="text-(--hr)" />}
+                {user?.role != "USER" && <hr className="text-(--hr)" />}
 
                 <section className="flex flex-col gap-2">
                     <h3 className="text-sm text-slate-500">SUPPORT</h3>
@@ -119,10 +123,10 @@ export default function SideBar({ sidebarOpen, setSidebarOpen }) {
                 </section>
             </div>
             {/* {user.role == "ADMIN" && <hr className="text-[color:var(--hr)]" />} */}
-            <section className="flex flex-col gap-3 mt-auto">
+            {user?.role == "USER" && <section className="flex flex-col gap-3 mt-auto">
                 <hr className="text-(--hr)" />
                 <Section icon={<IoMdLogOut />} text="Logout" click={() => mutate()} path="/logout" url={pathName} />
-            </section>
+            </section>}
         </div>
     )
 }

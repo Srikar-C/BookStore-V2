@@ -60,6 +60,8 @@
   --input-icon: #2563eb;
   --nonedit: #c9c9c9;
   --section-hover: #cad5e2;
+  --skeleton-bg: #d2d2d3;
+  --skeleton-wave: rgba(186, 186, 186, 0.6);
 }
 
 .dark {
@@ -70,6 +72,8 @@
   --input-icon: #60a5fa;
   --nonedit: #6c6b6b;
   --section-hover: #314158;
+  --skeleton-bg: #334155;
+  --skeleton-wave: rgba(255, 255, 255, 0.08);
 }
 
 body {

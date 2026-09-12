@@ -6,7 +6,7 @@ import { MdLocalOffer } from "react-icons/md";
 
 export function UserContent() {
     return (
-        <div className="left bg-[linear-gradient(135deg,_#0f172a,_#2563eb)] text-white rounded-l-2xl lg:rounded-tr-none rounded-b-none lg:rounded-l-2xl
+        <div className="left bg-[linear-gradient(135deg,#0f172a,#2563eb)] text-white rounded-l-2xl lg:rounded-tr-none rounded-b-none lg:rounded-l-2xl
                  p-5 lg:p-10 flex flex-col gap-5 justify-around w-fit lg:w-full">
             <div className="flex gap-2 px-3 py-1 items-center w-fit font-semibold ">
                 <div className="icon border-2 border-white/20 bg-white/10 items-center flex justify-center p-2 rounded-2xl">

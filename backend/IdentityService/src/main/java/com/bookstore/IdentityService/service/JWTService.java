@@ -65,6 +65,10 @@ public class JWTService {
         return extractClaim(token, claims -> claims.get("userid", String.class));
     }
 
+    public String extractEmail(String token) {
+        return extractClaim(token, claims -> claims.get("email", String.class));
+    }
+
     public boolean isTokenValid(String token, Users user) {
         String username = extractUsername(token);
         return username.equals(user.getName())

@@ -151,4 +151,15 @@ router.delete("/carts", async (req, res) => {
     }
 })
 
+router.delete("/carts/user/:userid", async (req, res) => {
+    const { userid } = req.params;
+    console.log("delte userid: ", userid);
+    try {
+        const orders = await cartModel.deleteMany({ userId: userid });
+        return res.status(200).json({ success: true, message: "Orders Deleted", data: null, error: null });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "Error", data: null, error: error });
+    }
+})
+
 export default router;

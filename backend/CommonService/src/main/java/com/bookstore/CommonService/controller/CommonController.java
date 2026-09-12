@@ -3,6 +3,7 @@ package com.bookstore.CommonService.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -48,5 +49,10 @@ public class CommonController {
     @GetMapping("wishlist")
     public ResponseEntity<ResponseDTO> getAllWishlist(HttpServletRequest http) {
         return service.getWishlists(http);
+    }
+
+    @DeleteMapping("wishlist/{userid}")
+    public ResponseEntity<ResponseDTO> deleteWishlist(@PathVariable String userid) {
+        return service.deleteWishlist(userid);
     }
 }

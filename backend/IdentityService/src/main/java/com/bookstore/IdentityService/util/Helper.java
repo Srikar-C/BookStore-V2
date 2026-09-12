@@ -47,6 +47,15 @@ public class Helper {
         }
     }
 
+    public Long generateDummyCounter() {
+        String query = "select nextval('dummycounter')";
+        try {
+            return jdbc.queryForObject(query, Long.class);
+        } catch (Exception e) {
+            throw new UnsupportedOperationException("Error in generating Dummy Id");
+        }
+    }
+
     public String generateOTP() {
         Random random = new Random();
         int otp = 100000 + random.nextInt(900000);

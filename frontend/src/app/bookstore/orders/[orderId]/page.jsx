@@ -9,6 +9,7 @@ import { LuDot } from "react-icons/lu";
 import { RiBillLine } from "react-icons/ri";
 import { TbArrowBackUp, TbSum } from "react-icons/tb";
 import { BsBasket3 } from "react-icons/bs";
+import OrderInvoiceSkeleton from "@/app/components/skeletons/OrderInvoiceSkeleton";
 
 export default function OrderInvoice() {
     const { orderId } = useParams();
@@ -27,7 +28,7 @@ export default function OrderInvoice() {
     console.log("invoice: ", data, data?.data, isPending);
 
     if (isPending) {
-        return <div>...Loading</div>
+        return <OrderInvoiceSkeleton />
     }
 
     const order = data?.data;
