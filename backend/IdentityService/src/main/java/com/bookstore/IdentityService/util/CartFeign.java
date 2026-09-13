@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import com.bookstore.IdentityService.DTO.response.ResponseDTO;
 
-@FeignClient(name = "cart-service", url = "http://localhost:8082")
+@FeignClient(name = "cart-service", url = "${CART_SERVICE_URL:http://localhost:8082}")
 public interface CartFeign {
 
     @DeleteMapping("/carts/user/{userid}")

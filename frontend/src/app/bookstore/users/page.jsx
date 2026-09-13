@@ -115,7 +115,7 @@ export default function Users() {
                                             <TiTick className="text-green-700 text-xl cursor-pointer" onClick={() => handleAdminAccess(item.id)} />
                                         </div> : <span className={`${item.active ? "bg-green-700" : "bg-red-700"} p-2 text-white rounded-xl`}>{item.active ? "Access Granted" : "Access Revoked"}</span>
                                 }
-                                {role === "user" && <span>Block</span>}
+                                {role === "user" && <span>Not Blocked</span>}
                             </div>
                             <hr className="text-(--hr)" />
                         </div>

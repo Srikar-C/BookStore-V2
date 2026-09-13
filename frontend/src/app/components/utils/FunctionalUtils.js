@@ -6,8 +6,8 @@ import { ImHome } from "react-icons/im";
 export function HashTag({ icon, text }) {
     return (
         <div className="flex gap-5 items-center">
-            <span className="text-2xl p-2 bg-white text-black rounded-2xl">{icon}</span>
-            <p className="text-xl">{text}</p>
+            <span className="text-xl p-2 bg-white text-black rounded-2xl">{icon}</span>
+            <p className="text-lg">{text}</p>
         </div>
     )
 }

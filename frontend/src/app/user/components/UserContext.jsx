@@ -6,8 +6,8 @@ import { MdLocalOffer } from "react-icons/md";
 
 export function UserContent() {
     return (
-        <div className="left bg-[linear-gradient(135deg,#0f172a,#2563eb)] text-white rounded-l-2xl lg:rounded-tr-none rounded-b-none lg:rounded-l-2xl
-                 p-5 lg:p-10 flex flex-col gap-5 justify-around w-fit lg:w-full">
+        <div className="left bg-[linear-gradient(135deg,#0f172a,#2563eb)] text-white rounded-l-2xl lg:rounded-tr-none rounded-b-none lg:rounded-l-4xl
+                 p-5 lg:p-8 flex flex-col gap-5 justify-around w-fit lg:w-full">
             <div className="flex gap-2 px-3 py-1 items-center w-fit font-semibold ">
                 <div className="icon border-2 border-white/20 bg-white/10 items-center flex justify-center p-2 rounded-2xl">
                     <FiBookOpen className="text-2xl" />
@@ -23,7 +23,7 @@ export function UserContent() {
                 </p>
                 <div className="maincontent flex flex-col gap-4 leading-0.5">
                     <h1 className="lg:text-4xl text-2xl font-semibold leading-tight">A good book has no ending</h1>
-                    <p className="lg:text-lg text-base leading-8">
+                    <p className="lg:text-md text-base leading-8">
                         Discover premium editions, curated collections, and fast checkout designed for modern readers and enterprise teams.
                     </p>
                 </div>

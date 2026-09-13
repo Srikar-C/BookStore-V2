@@ -1,6 +1,6 @@
 "use client"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AppProvider } from "./AppContext";
+import { AppProvider } from "../../hooks/AppContext";
 import { useState } from "react";
 
 export default function Providers({ children }) {

@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -167,34 +168,54 @@ public class UserService {
     public ResponseEntity<ResponseDTO> sendOTP(OTPDTO request) {
         ResponseDTO response = new ResponseDTO();
         try {
-            VerifyUsers verifyUsers = verifyUserRepo.findByEmail(request.getEmail());
-            if (verifyUsers == null) {
+            Users user = userRepo.findByEmail(request.getEmail());
+            if (user == null) {
                 response = help.error("No User exist with this Email");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
             }
-            if (verifyUsers.getRequestCount() > 5) {
-                Duration time = help.calculateDuration(verifyUsers.getOtpSession());
-                System.out.println("TIme: " + time + " " + time.getSeconds());
-                if (time.getSeconds() < 901) {
-                    response = help.error("OTP Limit Exceeded, Try after 15 minutes");
-                    return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response);
-                } else {
-                    verifyUsers.setRequestCount(0);
+            VerifyUsers verifyUsers = verifyUserRepo.findByEmail(request.getEmail());
+            if (user.getRole().equals("USER") && verifyUsers == null) {
+                response = help.error("No User exist with this Email");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+            if (verifyUsers != null) {
+                Integer requestCount = verifyUsers.getRequestCount() == null ? 0 : verifyUsers.getRequestCount();
+                if (verifyUsers.getRequestCount() > 5) {
+                    Duration time = help.calculateDuration(verifyUsers.getOtpSession());
+                    System.out.println("TIme: " + time + " " + time.getSeconds());
+                    if (time.getSeconds() < 901) {
+                        response = help.error("OTP Limit Exceeded, Try after 15 minutes");
+                        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response);
+                    } else {
+                        requestCount = 0;
+                        verifyUsers.setRequestCount(0);
+                    }
                 }
+                verifyUsers.setRequestCount(requestCount);
             }
             String otp = help.generateOTP();
 
-            Users user = userRepo.findByEmail(request.getEmail());
-
-            SubResponse sendingOTPTOEmail = help.sendOTP(verifyUsers.getEmail(), user.getName(), otp);
+            SubResponse sendingOTPTOEmail = help.sendOTP(user.getEmail(), user.getName(), otp);
             if (!sendingOTPTOEmail.isSuccess()) {
                 response = help.error(sendingOTPTOEmail.getError());
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
-
+            if (verifyUsers != null) {
+                verifyUsers.setRequestCount(verifyUsers.getRequestCount() + 1);
+            } else {
+                verifyUsers = new VerifyUsers();
+                verifyUsers.setEmail(request.getEmail());
+                verifyUsers.setRequestCount(1);
+                String token = "";
+                VerifyUsers check;
+                do {
+                    token = UUID.randomUUID().toString();
+                    check = verifyUserRepo.findByToken(token);
+                } while (check != null);
+                verifyUsers.setToken(token);
+            }
             verifyUsers.setOtp(otp);
             verifyUsers.setOtpSession(Instant.now());
-            verifyUsers.setRequestCount(verifyUsers.getRequestCount() + 1);
             verifyUsers.setUsed(false);
             verifyUserRepo.save(verifyUsers);
 
@@ -215,6 +236,10 @@ public class UserService {
             Users user = userRepo.findByEmail(request.getEmail());
             if (!request.getPassword().toString().equals(request.getCfnpassword().toString())) {
                 response = help.error("Passwords Not Same");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
+            if (request.getPassword().length() < 6) {
+                response = help.error("Password must be at least 6 characters long");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
             user.setPassword(encoder.encode(request.getPassword()));

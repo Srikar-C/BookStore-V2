@@ -8,6 +8,7 @@ import java.util.function.Function;
 
 import javax.crypto.SecretKey;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.bookstore.IdentityService.model.Users;
@@ -19,7 +20,9 @@ import io.jsonwebtoken.security.Keys;
 
 @Service
 public class JWTService {
-    private final String secretKey = "VGhpc0lzTXlTdXBlclNlY3JldEtleTEyMzQ1Njc4OTAxMjM0NTY3ODkw";
+
+    @Value("${JWT_SECRET_KEY}")
+    private String secretKey;
 
     public String generateToken(Users user) {
         Map<String, Object> claims = new HashMap<>();

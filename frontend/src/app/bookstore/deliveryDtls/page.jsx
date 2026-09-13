@@ -1,5 +1,5 @@
 "use client"
-import { useAppContext } from "@/app/components/common/AppContext";
+import { useAppContext } from "@/app/hooks/AppContext";
 import { formattedDate, getDeliveryDate } from "@/app/components/utils/FunctionalUtils";
 import { setOrder } from "@/app/components/utils/orderUtils";
 import { showError, showInfo, showSuccess } from "@/app/components/utils/showToasts";
@@ -21,7 +21,7 @@ export default function DeliveryDtls() {
         display_name: "",
     });
     const [date, setDate] = useState(null);
-    const { router, cartId } = useAppContext();
+    const { router, cartId, selectedcategory, search, sortBy } = useAppContext();
     const queryClient = useQueryClient();
 
     const [edit, setEdit] = useState(false);
@@ -128,7 +128,7 @@ export default function DeliveryDtls() {
                     queryKey: ["allCarts", user?.id]
                 })
                 queryClient.invalidateQueries({
-                    queryKey: ["allBooks"]
+                    queryKey: ["allBooks", 0, 0, selectedcategory, search, sortBy]
                 })
                 router.replace("/bookstore");
 
@@ -210,9 +210,9 @@ export default function DeliveryDtls() {
                             className={`${!locLoad ? "cursor-pointer" : "cursor-not-allowed"} p-2 rounded-xl border-2 border-(--foreground) text-(--foreground) hover:text-(--background) hover:bg-(--foreground)`}
 
                         >{edit ? "Save Details" : "Edit Details"}</button>
-                        <span disabled={locLoad} className={`${!locLoad ? "cursor-pointer" : "cursor-not-allowed"} p-2 rounded-xl border-2 text-white bg-[#2c6727] hover:text-[#2c6727] hover:bg-white`}
+                        <button disabled={locLoad} className={`${!locLoad ? "cursor-pointer" : "cursor-not-allowed"} p-2 rounded-xl border-2 text-white bg-[#2c6727] hover:text-[#2c6727] hover:bg-white`}
                             onClick={handleOrder}
-                        >Proceed to Order</span>
+                        >Proceed to Order</button>
                     </form>
                 </div>
             </div>

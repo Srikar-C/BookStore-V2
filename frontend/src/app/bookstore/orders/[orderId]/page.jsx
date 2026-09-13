@@ -1,5 +1,5 @@
 "use client"
-import { useAppContext } from "@/app/components/common/AppContext";
+import { useAppContext } from "@/app/hooks/AppContext";
 import { formattedDate, getDeliveryStatus } from "@/app/components/utils/FunctionalUtils";
 import { getOrderById } from "@/app/components/utils/orderUtils";
 import { useBookStore, useUserStore } from "@/app/hooks/useStore";
@@ -73,7 +73,7 @@ export default function OrderInvoice() {
                             <span className="font-semibold">Order Id</span>
                             <span>{order._id}</span>
                             <span className="font-semibold">Delivery Address</span>
-                            <span>{order.location.display_name}</span>
+                            <span>{order.location?.display_name || "Delivery Address Missed"}</span>
                             <span className="font-semibold">Order Placed On</span>
                             <span>{formattedDate(order.createdAt)}</span>
                             <span className="font-semibold">Order Delivery By</span>

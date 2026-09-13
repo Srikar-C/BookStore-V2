@@ -12,7 +12,7 @@ import { getColor } from "@/app/components/utils/FunctionalUtils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { addBook, editBook, getBook } from "@/app/components/utils/bookUtils";
 import { showError, showSuccess } from "@/app/components/utils/showToasts";
-import { useAppContext } from "@/app/components/common/AppContext";
+import { useAppContext } from "@/app/hooks/AppContext";
 import { useUserStore } from "@/app/hooks/useStore";
 
 export default function Book() {
@@ -20,7 +20,7 @@ export default function Book() {
     const { index } = useParams();
     const isNew = (index === "new");
     const { user } = useUserStore();
-    const { router } = useAppContext();
+    const { router, selectedcategory, search, sortBy } = useAppContext();
     const queryClient = useQueryClient();
 
     const { register, formState, handleSubmit, reset, setError } = useForm({
@@ -114,7 +114,7 @@ export default function Book() {
             if (response.status === 200) {
                 showSuccess(result.message);
                 queryClient.invalidateQueries({
-                    queryKey: ["allBooks"]
+                    queryKey: ["allBooks", 0, 0, selectedcategory, search, sortBy]
                 })
                 router.replace("/bookstore");
             }

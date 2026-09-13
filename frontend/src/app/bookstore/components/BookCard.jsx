@@ -1,5 +1,5 @@
 "use client"
-import { useAppContext } from "@/app/components/common/AppContext";
+import { useAppContext } from "@/app/hooks/AppContext";
 import { removeBookFromCart, updateCart } from "@/app/components/utils/cartUtils";
 import { addWishlist, removeWishlist } from "@/app/components/utils/commonUtils";
 import { showError, showSuccess } from "@/app/components/utils/showToasts";
@@ -8,6 +8,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { FaMinus, FaPlus, FaRegStar, FaStar } from "react-icons/fa";
 import { MdOutlineDeleteForever } from "react-icons/md";
+import { deleteBook } from "@/app/components/utils/bookUtils";
+import Link from "next/link";
 
 export default function BookCard({ book, mode }) {
 
@@ -169,6 +171,26 @@ export default function BookCard({ book, mode }) {
         }
     }
 
+    const { mutate: deletingBook, isPending: deleteBookPending } = useMutation({
+        mutationFn: deleteBook,
+        onSuccess: (response) => {
+            showSuccess("Book Deleted");
+            queryClient.invalidateQueries({
+                queryKey: ["allBooks"]
+            })
+        },
+        onError: (error) => {
+            showError("Error in deletion");
+            console.log(error);
+        }
+    })
+
+    function handleDeleteBook() {
+        console.log("clicked", deleteBookPending)
+        if (deleteBookPending) return;
+        deletingBook(book.id);
+    }
+
     return (
         <div className="w-100 h-65 relative flex gap-1 shadow-md shadow-(color:--shadow) rounded-xl cursor-pointer p-1 m-1 overflow-hidden hover:scale-105 transition-transform group">
             {book.quantity <= 0 ?
@@ -188,33 +210,37 @@ export default function BookCard({ book, mode }) {
                     <span className="bg-green-600 px-3 py-1 rounded-xl"> ₹{book?.price}</span>
                     <span className="flex items-center bg-blue-600 px-3 py-1 rounded-xl w-fit">Stock: {book?.quantity}</span>
                 </div>
-                <div className={`buttons grid ${mode !== "cart" ? "grid-cols-[1fr_0.2fr]" : "grid-cols-1"} gap-2 items-center w-full mt-auto`}>
+                <div className={`buttons grid ${user?.role !== "USER" && mode !== "general" ? "grid-cols-[1fr_1fr] w-fit" : mode !== "cart" ? "grid-cols-[1fr_0.2fr]" : "grid-cols-1"} gap-1 items-center w-full mt-auto`}>
                     <div className="addTocart w-full border-2 border-(--foreground) justify-center flex p-1 rounded-xl cursor-pointer"
                     >
-                        {user?.role === "ADMIN" || user?.role === "SUPERUSER" ?
-                            <span onClick={handleEdit} className="w-full text-center">Edit Book</span> :
-                            book.quantity === 0 ? mode === "display" ?
-                                <span className="w-full text-center">Not Available</span> :
-                                mode === "wishlist" ? <span className="w-full text-center">Not Available</span> :
-                                    <span className="w-full text-center" onClick={handleDeleteCart}>Delete From Cart</span> :
-                                customCount === 0 ? <span onClick={handleIncrement} className="w-full text-center"> Add To Cart </span> :
-                                    <div className="flex justify-around items-center w-full">
-                                        {customCount === 1 ? <MdOutlineDeleteForever className="text-xl" onClick={handleDecrement} /> :
-                                            <FaMinus className='text-xl' onClick={handleDecrement} />}
-                                        <input value={customCount} onChange={handleCount} className="w-10 text-center border-none" />
-                                        <FaPlus onClick={handleIncrement} />
-                                    </div>
+                        {mode === "general" ?
+                            <Link href="/user/login" className="w-full text-center">Login to Explore</Link>
+                            : user?.role === "ADMIN" || user?.role === "SUPERUSER" ?
+                                <span onClick={handleEdit} className="w-full text-center">Edit Book</span> :
+                                book.quantity === 0 ? mode === "display" ?
+                                    <span className="w-full text-center">Not Available</span> :
+                                    mode === "cart" ? <span className="w-full text-center" onClick={handleDeleteCart}>Delete From Cart</span> :
+                                        <span className="w-full text-center">Not Available</span> :
+                                    customCount === 0 ? <span onClick={handleIncrement} className="w-full text-center"> Add To Cart </span> :
+                                        <div className="flex justify-around items-center w-full">
+                                            {customCount === 1 ? <MdOutlineDeleteForever className="text-xl" onClick={handleDecrement} /> :
+                                                <FaMinus className='text-xl' onClick={handleDecrement} />}
+                                            <input value={customCount} onChange={handleCount} className="w-10 text-center border-none" />
+                                            <FaPlus onClick={handleIncrement} />
+                                        </div>
                         }
                     </div>
-                    {mode !== "cart" ? star ? <FaStar className="text-2xl text-yellow-500 cursor-pointer" onClick={handleWishlist} /> :
+                    {mode !== "general" && user?.role !== "USER" &&
+                        <span onClick={handleDeleteBook} className="w-full text-center border-2 border-(--foreground) rounded-xl p-1 items-center bg-(--foreground) text-(--background)">Delete</span>}
+                    {mode !== "general" && user?.role == "USER" && mode !== "cart" ? star ? <FaStar className="text-2xl text-yellow-500 cursor-pointer" onClick={handleWishlist} /> :
                         <FaRegStar className=" text-2xl cursor-pointer" onClick={handleWishlist} /> : ""}
                 </div>
             </div>
 
-            <div className="absolute w-45 h-full top-0 left-0 translate-y-100 group-hover:translate-y-0 bg-black/60 text-white transition-all flex justify-center items-center font-bold capitalize"
+            {mode !== "general" && <div className="absolute w-45 h-full top-0 left-0 translate-y-100 group-hover:translate-y-0 bg-black/60 text-white transition-all flex justify-center items-center font-bold capitalize"
                 onClick={() => handleModal(book?.id)}>
                 Read More
-            </div>
+            </div>}
         </div>
     );
 }

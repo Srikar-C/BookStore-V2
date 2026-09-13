@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "BookService",
+            "request": "launch",
+            "mainClass": "com.bookstore.BookService.BookServiceApplication",
+            "cwd": "${workspaceFolder}/backend/BookService"
+        },
+        {
+            "type": "java",
+            "name": "IdentityService",
+            "request": "launch",
+            "mainClass": "com.bookstore.IdentityService.IdentityServiceApplication",
+            "cwd": "${workspaceFolder}/backend/IdentityService"
+        },
+        {
+            "type": "java",
+            "name": "CommonService",
+            "request": "launch",
+            "mainClass": "com.bookstore.CommonService.CommonServiceApplication",
+            "cwd": "${workspaceFolder}/backend/CommonService"
+        }
+    ]
+}

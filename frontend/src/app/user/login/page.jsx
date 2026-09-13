@@ -1,23 +1,20 @@
 
 "use client"
 import { useForm } from "react-hook-form";
-import { DevTool } from "@hookform/devtools";
 import Link from "next/link";
 import { FaUserAlt } from "react-icons/fa";
 import { MdOutlinePassword } from "react-icons/md";
-import { useAppContext } from "@/app/components/common/AppContext";
+import { useAppContext } from "@/app/hooks/AppContext";
 import { useEffect, useState } from "react";
 import InputBox from "../components/InputBox";
 import { getColor } from "@/app/components/utils/FunctionalUtils";
 import { getCurrentUser, login } from "@/app/components/utils/userUtils";
 import { showError, showSuccess } from "@/app/components/utils/showToasts";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import UserSkeleton from "@/app/components/skeletons/UserSkeleton";
-
 export default function Login() {
 
     const { router } = useAppContext();
-    const { register, control, handleSubmit, formState } = useForm({
+    const { register, handleSubmit, formState } = useForm({
         defaultValues: {
             name: "",
             password: "",
@@ -62,20 +59,19 @@ export default function Login() {
         logining(data);
     }
 
-    if (existing) {
-        return <UserSkeleton times={2} />
-    }
+    // if (existing) {
+    //     return <UserSkeleton times={2} />
+    // }
 
     return (
         <div className="right rounded-l-2xl p-6 lg:p-10 flex flex-col gap-4 justify-evenly w-full">
-            <div className="heading">
+            <div className="heading flex flex-col gap-2">
                 <h3 className="text-4xl font-semibold">Welcome Back</h3>
                 <p className="text-sm text-slate-500">Access your account to buy books, track orders, and enjoy priority support.</p>
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="inputs flex flex-col gap-5">
                 <InputBox label="Username/Email" field="name" icon={<FaUserAlt />} loading={isPending} register={register} setFocusedField={setFocusedField} errors={errors.name?.message} color={nameColor} type="text" />
                 <InputBox label="Password" field="password" icon={<MdOutlinePassword />} loading={isPending} register={register} setFocusedField={setFocusedField} errors={errors.password?.message} color={passwordColor} type="password" />
-                {/* <DevTool control={control} /> */}
                 <button type="submit"
                     disabled={isPending}
                     title={!isPending ? "Please Fill All Details" : "Login"}

@@ -3,6 +3,7 @@ package com.bookstore.BookService.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,12 +14,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.bookstore.BookService.DTO.request.OrderCount;
-import com.bookstore.BookService.DTO.request.SingleObject;
 import com.bookstore.BookService.DTO.response.ResponseDTO;
 import com.bookstore.BookService.model.Books;
 import com.bookstore.BookService.service.BookService;
-
-import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/books")
@@ -33,9 +31,9 @@ public class BookController {
     // return "books";
     // }
 
-    @GetMapping("dummy")
-    public String insertDummy() {
-        return service.insertDummy();
+    @GetMapping("dummy/{count}")
+    public String insertDummy(@PathVariable int count) {
+        return service.insertDummy(count);
     }
 
     // get books with cart
@@ -51,13 +49,16 @@ public class BookController {
     }
 
     @GetMapping
-    public ResponseEntity<ResponseDTO> getAllBooks(@RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "9") int size) {
-        return service.getAllBooks(page, size);
+    public ResponseEntity<ResponseDTO> getAllBooksPaged(@RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size,
+            @RequestParam String search,
+            @RequestParam String category,
+            @RequestParam(defaultValue = "quantity,desc") String sortBy) {
+        return service.getAllBooksPaged(page, size, search, category, sortBy);
     }
 
     @PostMapping("book")
-    public ResponseEntity<ResponseDTO> addNewBook(@Valid @RequestBody Books request) {
+    public ResponseEntity<ResponseDTO> addNewBook(@RequestBody Books request) {
         return service.addNewBook(request);
     }
 
@@ -67,12 +68,12 @@ public class BookController {
     }
 
     @PostMapping("{id}")
-    public ResponseEntity<ResponseDTO> updateBook(@PathVariable String id, @Valid @RequestBody Books request) {
+    public ResponseEntity<ResponseDTO> updateBook(@PathVariable String id, @RequestBody Books request) {
         return service.updateBook(id, request);
     }
 
     @PostMapping("suggestions")
-    public ResponseEntity<ResponseDTO> getSuggestions(@RequestBody SingleObject request) {
+    public ResponseEntity<ResponseDTO> getSuggestions(@RequestBody Books request) {
         return service.getSuggestions(request);
     }
 
@@ -81,4 +82,8 @@ public class BookController {
         return service.updateBookCounts(request);
     }
 
+    @DeleteMapping("{id}")
+    public ResponseEntity<ResponseDTO> deleteBook(@PathVariable String id) {
+        return service.deleteBook(id);
+    }
 }

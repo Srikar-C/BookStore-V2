@@ -9,10 +9,11 @@ import cookieParser from "cookie-parser";
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT;
+const port = process.env.PORT || 8082;
+const mongoUri = process.env.NEXT_PUBLIC_API_Cart || "mongodb://localhost:27017/bookstore-cart";
 
 app.use(cors({
-    origin: "http://localhost:3000",
+    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
     credentials: true
 }));
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -22,7 +23,7 @@ app.use(cookieParser());
 app.use(CartRouter);
 
 mongoose
-    .connect(process.env.NEXT_PUBLIC_API_Cart || "mongodb://localhost:27017/bookstore-cart")
+    .connect(mongoUri)
     .then((response) => {
         console.log("Connected to database");
     })

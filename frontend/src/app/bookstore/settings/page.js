@@ -18,7 +18,7 @@ export default function Settings() {
     const { user } = useUserStore();
     const [open, setOpen] = useState(false);
     const [mode, setMode] = useState(false);
-    const { register, handleSubmit, formState, setValue, watch } = useForm({
+    const { register, handleSubmit, formState, setValue, watch, setError } = useForm({
         defaultValues: {
             email: user?.email,
             password: ""
@@ -31,8 +31,6 @@ export default function Settings() {
         select: (response) => response?.data
     })
 
-    console.log("orderdtls: ", data);
-
     const { errors } = formState;
     const [focusedField, setFocusedField] = useState(null);
 
@@ -41,12 +39,14 @@ export default function Settings() {
         onSuccess: (response) => {
             console.log(response);
             showSuccess("OTP sent");
+            setValue("password", "");
+            setValue("cfnpassword", "");
         },
         onError: (error) => {
             console.log(error);
-            if (error.status === 429) {
-                showError(error.data.error);
-            }
+            // if (error.status === 429) {
+            showError(error.data.error);
+            // }
         }
     })
 
@@ -78,19 +78,14 @@ export default function Settings() {
             showSuccess(response.data.message);
             setOpen(false);
             setMode(false);
+            setValue("password", "");
+            setValue("cfnpassword", "");
         },
         onError: (error) => {
             const errorResult = error.data;
-            if (error.status === 400) {
-                setValue("cfnpassword", "");
-                setError("cfnpassword", {
-                    type: "validation",
-                    message: "Not Same as Password"
-                })
-            }
-            else {
-                showError(errorResult.message);
-            }
+            console.log("reset error: ", errorResult);
+            setValue("cfnpassword", "");
+            showError(errorResult.error);
         }
     })
 
@@ -129,6 +124,8 @@ export default function Settings() {
                 <span>{user?.email}</span>
                 <span className="font-semibold">Phone</span>
                 <span>{user?.phone}</span>
+                <span className="font-semibold">Role</span>
+                <span>{user?.role}</span>
                 <span className="p-2 border-2 border-(--section) cursor-pointer w-fit bg-orange-400 text-white rounded-2xl font-semibold"
                     onClick={() => {
                         setOpen(true);
@@ -138,7 +135,7 @@ export default function Settings() {
             </div>
             <div className="flex flex-col gap-5 border-2 border-(--foreground) p-3 rounded-xl">
                 <h4 className="font-semibold text-xl font-serif">Stats</h4>
-                <div class="boxes flex gap-5">
+                <div className="boxes flex gap-5">
                     <div className="flex justify-between px-4 py-1 rounded-lg w-62.5 h-[15vh] items-center bg-[linear-gradient(135deg,#A97CF8,#F38CB8)] text-(--background) shadow-(color:--shadow)">
                         <h6 className="text-xl font-semibold">Total Number of Orders</h6>
                         <p className="text-lg">{data?.data?.totalOrders}</p>

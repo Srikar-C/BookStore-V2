@@ -11,9 +11,9 @@ export function getAllBooks() {
 }
 
 //get without carts with paging
-export function getPagedBooks(pageNumber, pageSize) {
-    console.log("FD", pageNumber, pageSize);
-    return useFetch("get", process.env.NEXT_PUBLIC_API_Book, process.env.NEXT_PUBLIC_MAPPING_Book, `?page=${pageNumber}&size=${pageSize}`, "", false);
+export function getPagedBooks(pageNumber, pageSize, search, category, sortBy) {
+    console.log("FD", pageNumber, pageSize, search, category, sortBy);
+    return useFetch("get", process.env.NEXT_PUBLIC_API_Book, process.env.NEXT_PUBLIC_MAPPING_Book, `?page=${pageNumber}&size=${pageSize}&search=${search}&category=${category}&sortBy=${sortBy}`, "", false);
 }
 
 export function getBook(id) {
@@ -29,5 +29,9 @@ export function editBook({ id, request }) {
 }
 
 export function getBookSuggestions(request) {
-    return useFetch("post", process.env.NEXT_PUBLIC_API_Book, process.env.NEXT_PUBLIC_MAPPING_Book, "suggestions", { request }, false);
+    return useFetch("post", process.env.NEXT_PUBLIC_API_Book, process.env.NEXT_PUBLIC_MAPPING_Book, "suggestions", request, false);
+}
+
+export function deleteBook(id) {
+    return useFetch("delete", process.env.NEXT_PUBLIC_API_Book, process.env.NEXT_PUBLIC_MAPPING_Book, id, "", false);
 }

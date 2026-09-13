@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 import { useBookStore, useCartStore } from "../hooks/useStore"
 import BookCard from "./components/BookCard";
 import Pagination from "@mui/material/Pagination";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getPagedBooks } from "../components/utils/bookUtils";
 import BookSkeleton from "../components/skeletons/BookSkeleton";
+import { useAppContext } from "../hooks/AppContext";
 
 export default function BookStoreLandingPage() {
 
@@ -14,10 +15,12 @@ export default function BookStoreLandingPage() {
     const [pageSize, setPageSize] = useState(9);
     const [pageNumber, setPageNumber] = useState(0);
     const [pagedBooks, setPagedBooks] = useState([]);
+    const { search, selectedcategory, setSelectedCategory, sortBy } = useAppContext();
+    const queryClient = useQueryClient();
 
     const { data, isPending } = useQuery({
-        queryKey: ["allBooks", pageNumber, pageSize],
-        queryFn: () => getPagedBooks(pageNumber, pageSize),
+        queryKey: ["allBooks", pageNumber, pageSize, search, selectedcategory, sortBy],
+        queryFn: () => getPagedBooks(pageNumber, pageSize, search, selectedcategory, sortBy),
         select: (response) => response?.data,
     });
 
@@ -26,7 +29,11 @@ export default function BookStoreLandingPage() {
         if (data?.success && data?.data) {
             console.log("book list: ", data);
             setPagedBooks(data?.data?.content?.books?.content);
-            setCategories(data?.data?.content?.category);
+            const allCategory = [
+                "All",
+                ...(data?.data?.content?.category)
+            ]
+            setCategories(allCategory);
         }
     }, [isPending, data]);
 
@@ -50,8 +57,12 @@ export default function BookStoreLandingPage() {
         )
     ];
 
-    if (isPending) {
-        return <BookSkeleton />
+    function handleBookSortByCategory(item) {
+        console.log("item selected: ", item);
+        setSelectedCategory(item);
+        queryClient.invalidateQueries({
+            queryKey: ["allBooks", 0, 0, search, item, sortBy]
+        })
     }
 
     return (
@@ -59,7 +70,7 @@ export default function BookStoreLandingPage() {
             <div className="categories flex justify-between gap-3 p-2 h-[7vh]">
                 <div className="categories flex gap-3">
                     {categories?.map((item, index) => (
-                        <p key={index} className="px-3 py-1 rounded-lg shadow-xs shadow-(color:--shadow) cursor-pointer">
+                        <p key={index} className={`px-3 py-1 rounded-lg ${selectedcategory !== item ? "bg-(--background) text-(--foreground)" : "bg-(--foreground) text-(--background)"} shadow-xs shadow-(color:--shadow) cursor-pointer`} onClick={() => handleBookSortByCategory(item)}>
                             {item}
                         </p>
                     ))}
@@ -81,9 +92,10 @@ export default function BookStoreLandingPage() {
                 </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 p-4">
-                {sortedBooks?.map((item) => (
-                    <BookCard key={item.id} book={item} mode="display" />
-                ))}
+                {isPending ?
+                    <BookSkeleton /> : sortedBooks?.map((item) => (
+                        <BookCard key={item.id} book={item} mode="display" />
+                    ))}
             </div>
             <div className="pagintion w-full flex justify-center">
                 <Pagination count={Math.max(data?.data?.content?.books?.totalPages, 1)} page={pageNumber + 1} color="secondary"

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import com.bookstore.IdentityService.DTO.request.UserIdOrderCountDTO;
 import com.bookstore.IdentityService.DTO.response.ResponseDTO;
 
-@FeignClient(name = "order-service", url = "http://localhost:8083")
+@FeignClient(name = "order-service", url = "${ORDER_SERVICE_URL:http://localhost:8083}")
 public interface OrderFeign {
 
     @DeleteMapping("/orders/{userid}")

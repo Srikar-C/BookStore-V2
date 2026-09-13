@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import com.bookstore.IdentityService.DTO.response.ResponseDTO;
 
-@FeignClient(name = "common-service", url = "http://localhost:8084")
+@FeignClient(name = "common-service", url = "${COMMON_SERVICE_URL:http://localhost:8084}")
 public interface WishlistFeign {
 
     @DeleteMapping("/common/wishlist/{userid}")

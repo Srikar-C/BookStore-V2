@@ -3,9 +3,11 @@ package com.bookstore.BookService.service;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -21,7 +23,6 @@ import com.bookstore.BookService.DTO.request.BookCount;
 import com.bookstore.BookService.DTO.request.BookCountDTO;
 import com.bookstore.BookService.DTO.request.BookOrderCount;
 import com.bookstore.BookService.DTO.request.OrderCount;
-import com.bookstore.BookService.DTO.request.SingleObject;
 import com.bookstore.BookService.DTO.request.UserBookCount;
 import com.bookstore.BookService.DTO.response.ResponseDTO;
 import com.bookstore.BookService.DTO.response.SubResponse;
@@ -42,7 +43,7 @@ public class BookService {
     public ResponseEntity<ResponseDTO> addNewBook(Books request) {
         ResponseDTO response = new ResponseDTO();
 
-        SubResponse existsBook = isExists(request);
+        SubResponse existsBook = help.isExists(request);
         if (!existsBook.isSuccess()) {
             response = help.error(existsBook.getError());
             return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
@@ -71,34 +72,6 @@ public class BookService {
             response = help.error(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-    }
-
-    private SubResponse isExists(Books request) {
-        SubResponse response = new SubResponse();
-        Map<String, Object> errors = new HashMap<>();
-        Books book = null;
-        book = repo.findByUrl(request.getUrl());
-        if (book != null) {
-            errors.put("url", "Url already Exist");
-        }
-
-        book = repo.findByTitle(request.getTitle());
-        if (book != null) {
-            errors.put("title", "Title already Exist");
-        }
-
-        book = repo.findByAuthorAndTitle(request.getAuthor(), request.getTitle());
-        if (book != null) {
-            errors.put("book", "Book already Exist");
-        }
-
-        if (errors.size() > 0) {
-            response = help.subError(errors);
-        } else {
-            response = help.subSuccess("No Errors", null);
-        }
-        return response;
-
     }
 
     public ResponseEntity<ResponseDTO> getAllBooks() {
@@ -178,16 +151,29 @@ public class BookService {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
-    public ResponseEntity<ResponseDTO> getSuggestions(SingleObject request) {
+    public ResponseEntity<ResponseDTO> getSuggestions(Books request) {
         ResponseDTO response = new ResponseDTO();
+        System.out.println("request for suggestions" + request.toString());
         try {
-            List<Books> books = repo.findByCategory(request.getRequest());
+            List<Books> books = repo.findByCategory(request.getCategory());
             List<BookCountDTO> userBooks = new ArrayList<>();
-            for (Books book : books) {
-                BookCountDTO b = new BookCountDTO(book.getId(), book.getAuthor(), book.getTitle(),
-                        book.getDescription(), book.getUrl(), book.getCategory(), book.getQuantity(), book.getPrice(),
-                        BigDecimal.ZERO, false);
-                userBooks.add(b);
+            Set<String> addedBookIds = new HashSet<>();
+            addSuggestions(request, books, userBooks, addedBookIds);
+            if (books.size() < 6) {
+                books = repo.findByTitle(request.getTitle());
+                addSuggestions(request, books, userBooks, addedBookIds);
+            }
+            if (userBooks.size() >= 6) {
+                userBooks = userBooks.subList(0, 6);
+                response = help.success("Got suggestions", userBooks);
+                return ResponseEntity.status(HttpStatus.OK).body(response);
+            }
+            if (books.size() < 6) {
+                books = repo.findAllByOrderByQuantityDesc();
+                addSuggestions(request, books, userBooks, addedBookIds);
+            }
+            if (userBooks.size() >= 6) {
+                userBooks = userBooks.subList(0, 6);
             }
             response = help.success("Got suggestions", userBooks);
             return ResponseEntity.status(HttpStatus.OK).body(response);
@@ -195,6 +181,30 @@ public class BookService {
             response = help.error(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    private void addSuggestions(Books request, List<Books> books, List<BookCountDTO> userBooks,
+            Set<String> addedBookIds) {
+        for (Books book : books) {
+            if (userBooks.size() >= 6) {
+                break;
+            }
+            if (book.getId().equals(request.getId())) {
+                continue;
+            }
+            if (book.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+            if (addedBookIds.contains(book.getId())) {
+                continue;
+            }
+            BookCountDTO b = new BookCountDTO(book.getId(), book.getAuthor(), book.getTitle(),
+                    book.getDescription(), book.getUrl(), book.getCategory(), book.getQuantity(),
+                    book.getPrice(),
+                    BigDecimal.ZERO, false);
+            userBooks.add(b);
+            addedBookIds.add(book.getId());
+        }
     }
 
     public ResponseEntity<ResponseDTO> updateBookCounts(OrderCount request) {
@@ -215,47 +225,62 @@ public class BookService {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
-    public String insertDummy() {
+    public String insertDummy(int count) {
         List<Books> books = new ArrayList<>();
-        String[] categories = {
-                "Fiction",
-                "Science",
-                "Technology",
-                "History",
-                "Biography",
-                "Fantasy",
-                "Mystery",
-                "Programming"
-        };
-        for (int i = 1; i <= 100; i++) {
+        List<String> cats = repo.findDistinctCategory();
+        for (int i = 1; i <= count; i++) {
             Books book = new Books();
-            book.setId("DMY" + i);
-            book.setAuthor("Author" + i);
+            Long counter = help.generateDummyCounter();
+            book.setId("DMY" + counter);
+            book.setAuthor("Author" + counter);
             book.setDescription(
                     "Lorem ipsum dolor sit amet, consectetur adipisicing elit. Tempora blanditiis iusto inventore soluta earum, corrupti distinctio autem vero impedit alias harum, explicabo similique fugiat exercitationem quisquam itaque aliquam omnis illo.");
-            book.setTitle("Title" + 1);
-            book.setPrice(BigDecimal.valueOf(100 * i));
+            book.setTitle("Title" + counter);
+            book.setPrice(BigDecimal.valueOf(100 * counter));
             Random random = new Random();
-            book.setQuantity(BigDecimal.valueOf(10 + random.nextInt(90)));
-            book.setCategory(categories[(i - 1) % categories.length]);
+            book.setQuantity(BigDecimal.valueOf(10 + random.nextInt(350)));
+            book.setCategory(cats.get(random.nextInt(cats.size() - 1)));
             book.setUrl(
                     "https://blog-cdn.reedsy.com/directories/admin/featured_image/591/dissecting-the-cover-of-a-book-8fbcaf.webp");
             books.add(book);
         }
         try {
             repo.saveAll(books);
-            return "Inserted 100 rows books";
+            return "Inserted " + count + " rows books";
         } catch (Exception e) {
             return e.toString();
         }
     }
 
-    public ResponseEntity<ResponseDTO> getAllBooks(int pageNumber, int pageSize) {
+    public ResponseEntity<ResponseDTO> getAllBooksPaged(int pageNumber, int pageSize, String search, String category,
+            String sortBy) {
         ResponseDTO response = new ResponseDTO();
         try {
+            System.out.println(pageNumber + " " + pageSize + " " + search + " " + category + " " + sortBy);
+            boolean hasCategory = category != null && !category.isEmpty() && !category.isBlank()
+                    && !category.equals("All");
+            boolean hasSearch = search != null && !search.isEmpty() && !search.isBlank();
 
-            Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by("quantity").descending());
-            Page<Books> books = repo.findAllByOrderByQuantityDesc(pageable);
+            String[] sortParts = sortBy.split(",");
+            String sortField = sortParts[0];
+            String sortDirection = sortParts.length > 1 ? sortParts[1] : "asc";
+            Sort.Direction direction = sortDirection.equalsIgnoreCase("desc")
+                    ? Sort.Direction.DESC
+                    : Sort.Direction.ASC;
+            Pageable pageable = PageRequest.of(pageNumber, pageSize,
+                    Sort.by(direction, sortField));
+            Page<Books> books;
+
+            if (hasCategory && hasSearch) {
+                books = repo.findByCategoryAndTitleContainingIgnoreCase(category, search, pageable);
+            } else if (hasCategory) {
+                books = repo.findByCategory(category, pageable);
+            } else if (hasSearch) {
+                books = repo.findByTitleContainingIgnoreCase(search, pageable);
+            } else {
+                books = repo.findAll(pageable);
+            }
+
             Map<String, Object> hm = new HashMap<>();
             hm.put("books", books);
             List<String> cats = repo.findDistinctCategory();
@@ -275,6 +300,19 @@ public class BookService {
             response = help.error(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    public ResponseEntity<ResponseDTO> deleteBook(String id) {
+        ResponseDTO response = new ResponseDTO();
+        try {
+            repo.deleteById(id);
+            response = help.success("Book Deleted Successfully", null);
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        } catch (Exception e) {
+            response = help.error(e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+
     }
 
 }

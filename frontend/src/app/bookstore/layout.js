@@ -5,7 +5,7 @@ import TopNavBar from "./components/TopNavBar";
 import { getCurrentUser } from "../components/utils/userUtils";
 import { useEffect, useState } from "react";
 import { useBookStore, useCartStore, useUserStore, useWishListStore } from "../hooks/useStore";
-import { useAppContext } from "../components/common/AppContext";
+import { useAppContext } from "../hooks/AppContext";
 import { showInfo } from "../components/utils/showToasts";
 import { getAllCarts } from "../components/utils/cartUtils";
 import { getAllBooks } from "../components/utils/bookUtils";

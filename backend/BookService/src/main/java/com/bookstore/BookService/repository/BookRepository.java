@@ -15,7 +15,7 @@ public interface BookRepository extends JpaRepository<Books, String> {
 
     Books findByUrl(String url);
 
-    Books findByTitle(String title);
+    List<Books> findByTitle(String title);
 
     Books findByAuthorAndTitle(String author, String title);
 
@@ -27,5 +27,11 @@ public interface BookRepository extends JpaRepository<Books, String> {
     List<Books> findAllByOrderByQuantityDesc();
 
     Page<Books> findAllByOrderByQuantityDesc(Pageable pageable);
+
+    Page<Books> findByCategoryAndTitleContainingIgnoreCase(String category, String search, Pageable pageable);
+
+    Page<Books> findByCategory(String category, Pageable pageable);
+
+    Page<Books> findByTitleContainingIgnoreCase(String search, Pageable pageable);
 
 }

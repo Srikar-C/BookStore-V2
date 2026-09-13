@@ -1,16 +1,16 @@
 "use client";
-import { useAppContext } from "@/app/components/common/AppContext";
+import { useAppContext } from "@/app/hooks/AppContext";
 import { getBook, getBookSuggestions } from "@/app/components/utils/bookUtils";
-import { updateCart } from "@/app/components/utils/cartUtils";
+import { removeBookFromCart, updateCart } from "@/app/components/utils/cartUtils";
 import { addWishlist, removeWishlist } from "@/app/components/utils/commonUtils";
 import { showError } from "@/app/components/utils/showToasts";
 import { useCartStore, useUserStore, useWishListStore } from "@/app/hooks/useStore";
-import { Marquee } from "@/components/ui/marquee";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FaMinus, FaPlus, FaRegStar, FaStar } from "react-icons/fa";
 import { MdOutlineDeleteForever } from "react-icons/md";
+import BookCard from "../../components/BookCard";
 
 export default function Modal() {
     const { index } = useParams();
@@ -36,8 +36,8 @@ export default function Modal() {
     });
 
     const { data: suggestBooks, isPending: suggestionsPending } = useQuery({
-        queryKey: ["suggestions", bookData?.category],
-        queryFn: () => getBookSuggestions(bookData.category),
+        queryKey: ["suggestions", bookData],
+        queryFn: () => getBookSuggestions(bookData),
         enabled: !!bookData?.category,
         select: (response) => response.data.data
     });
@@ -72,22 +72,41 @@ export default function Modal() {
         }
     })
 
-    const filteredSuggestions = suggestBooks?.filter((prev) => {
-        return prev.id != index
+    const { mutate: updateCartMutation, isPending: updatePending } = useMutation({
+        mutationFn: ({ userid, bookid, count, action }) => updatingCart(userid, bookid, count, action),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ["allCarts", user?.id]
+            });
+        },
+        onError: () => {
+            showError("Couldn't update Cart");
+        }
     })
 
-    if (isPending) {
-        return <div>Loading....</div>
-    }
+    const { mutate: deleteCartMutation, isPending: deletePending } = useMutation({
+        mutationFn: ({ userid, bookid }) => removeBookFromCart(userid, bookid),
+        onSuccess: (response) => {
+            // const result = response.data;
+            if (response.status === 200) {
+                // showSuccess(result.message);
+                queryClient.invalidateQueries({
+                    queryKey: ["allCarts", user?.id]
+                })
+            }
+        },
+        onError: (error) => {
+            showError(error.data.error);
+        }
+    })
 
-
-    async function updatingCart(newCount, action) {
+    async function updatingCart(userid, bookid, count, action) {
         try {
-            console.log(user?.id, bookData.id, newCount);
+            console.log(userid, bookid, count);
             const currentCart = useCartStore.getState().carts;
             console.log("newcart", currentCart);
-            await updateCart(user?.id, bookData.id, newCount);
-            setCustomCount(newCount);
+            await updateCart(userid, bookid, count);
+            setCustomCount(count);
         } catch (error) {
             if (action === "increment") {
                 decrementCartItem(bookData, user.id);
@@ -105,28 +124,26 @@ export default function Modal() {
         }
     }
 
-    function handleModal(id) {
-        router.push(`/bookstore/modal/${id}`)
-    }
-
     function handleIncrement() {
+        console.log(updatePending, deletePending)
+        if (updatePending || deletePending) return;
         if (customCount + 1 > bookData.quantity) {
             showError("No More Stocks");
             return;
         }
         const newCount = customCount + 1;
-        incrementCartItem(bookData, user.id);
-        updatingCart(newCount, "increment");
+        incrementCartItem(bookData, user.id, newCount);
+        updateCartMutation({ userid: user?.id, bookid: bookData?.id, count: newCount, action: "increment" });
     }
 
     function handleDecrement() {
-        if (customCount === 0) return;
+        if (updatePending || customCount === 0) return;
         var newCount = customCount - 1;
-        if (customCount > book.quantity) {
-            newCount = book.quantity;
+        if (customCount > bookData.quantity) {
+            newCount = bookData.quantity;
         }
-        decrementCartItem(book, user.id, newCount)
-        updatingCart(newCount, "decrement");
+        decrementCartItem(bookData, user.id, newCount)
+        updateCartMutation({ userid: user?.id, bookid: bookData?.id, count: newCount, action: "decrement" });
     }
 
     function handleCount(e) {
@@ -135,13 +152,17 @@ export default function Modal() {
         if (e.target.value === "" || e.target.value === " ") {
             return;
         }
-        if (e.target?.value > book.quantity) {
+        if (e.target?.value > bookData.quantity) {
             showError("No More Stocks");
             return;
         }
         const newCount = e.target.value;
-        decrementCartItem(book, user.id, newCount)
-        updatingCart(newCount, "custom");
+        decrementCartItem(bookData, user.id, newCount)
+        updateCartMutation({ userid: user?.id, bookid: bookData?.id, count: newCount, action: "custom" });
+    }
+
+    function handleDeleteCart() {
+        deleteCartMutation({ userid: user.id, bookid: bookData.id });
     }
 
     function handleEdit() {
@@ -160,9 +181,13 @@ export default function Modal() {
         }
     }
 
+    if (isPending) {
+        return <div>Loading....</div>
+    }
+
     return (
-        <div className="w-full relative h-screen min-h-0 bg-(--background) rounded-xl p-4 flex flex-col gap-5 overflow-y-auto">
-            <div className="h-80 flex gap-3 p-1 items-center border-2 border-black">
+        <div className="w-full relative bg-(--background) rounded-xl p-4 flex flex-col gap-5 overflow-y-auto">
+            <div className="h-80 flex gap-3 p-1 items-center border-2 border-(--foreground)">
                 <img src={bookData.url} className="rounded-xl w-55 h-full" />
                 <div className="grid grid-cols-[0.2fr_1fr] gap-3 items-start content-start w-full">
                     <span className="font-semibold ">Title </span>
@@ -177,9 +202,12 @@ export default function Modal() {
                     <h4 className="font-normal text-justify">{bookData?.quantity}</h4>
                     <div className="addTocart col-span-2 w-[30%] bg-(--input-icon) text-white font-semibold justify-center items-center flex px-1 py-2 rounded-xl cursor-pointer"
                     >
-                        {user?.role === "ADMIN" ?
+                        {user?.role === "ADMIN" || user?.role === "SUPERUSER" ?
                             <span onClick={handleEdit} className="w-full text-center">Edit Book</span> :
-                            bookData.quantity === 0 ? <span className="w-full text-center cursor-not-allowed">Not Available</span> :
+                            bookData?.quantity === 0 ? mode === "display" ?
+                                <span className="w-full text-center">Not Available</span> :
+                                mode === "cart" ? <span className="w-full text-center" onClick={handleDeleteCart}>Delete From Cart</span> :
+                                    <span className="w-full text-center">Not Available</span> :
                                 customCount === 0 ? <span onClick={handleIncrement} className="w-full text-center"> Add To Cart </span> :
                                     <div className="flex justify-around items-center w-full">
                                         {customCount === 1 ? <MdOutlineDeleteForever className="text-xl" onClick={handleDecrement} /> :
@@ -195,38 +223,23 @@ export default function Modal() {
                     </div>
                 </div>
             </div>
-            {/* <hr className="text-(--hr)" />
-            <h3 className="text-3xl text-(--foreground) font-semibold">Reviews</h3>
-            <div className="reviews">
-                <Marquee pauseOnHover vertical className="suggestions [--duration:20s] h-fit">
-                    {suggestionsPending ? (
-                        <p>Loading suggestions...</p>
-                    ) : (
-                        filteredSuggestions?.map((item) => (
-                            <div className="mx-5" key={item.id} onClick={() => handleModal(item.id)}>
-                                <img src={item.url} className="w-[150px] h-[200px]" />
-                                <h5 className="text-lg">{item.title}</h5>
-                            </div>
-                        ))
-                    )}
-                </Marquee>
-            </div> */}
 
             <hr className="text-(--hr)" />
-            <h3 className="text-3xl text-(--foreground) font-semibold">Suggestions</h3>
-            <div className="suggestions">
-                <Marquee pauseOnHover className="suggestions [--duration:20s] h-fit">
+            <h3 className="text-3xl text-(--foreground) font-semibold">You May Also Like</h3>
+            <div className="suggestions sw-full overflow-x-auto overflow-y-hidden scrollbar-thin ">
+                <div pauseOnHover className="flex gap-3 w-max pb-3 items-center">
                     {suggestionsPending ? (
                         <p>Loading suggestions...</p>
                     ) : (
-                        filteredSuggestions?.map((item) => (
-                            <div className="mx-5 cursor-pointer" key={item.id} onClick={() => handleModal(item.id)}>
-                                <img src={item.url} className="w-37.5 h-50" />
-                                <h5 className="text-lg">{item.title}</h5>
-                            </div>
-                        ))
+                        suggestBooks?.length > 0 ?
+                            suggestBooks?.map((item, index) => (
+                                <BookCard key={index} book={item} mode="suggestions" />
+                            )) : <p>No suggestions...</p>
                     )}
-                </Marquee>
+                    <span className="text-wrap w-fit text-center cursor-pointer shadow-sm shadow-(color:--shadow) p-2 rounded-2xl -ml-10 mr-1 bg-(--foreground) text-(--background) h-fit items-center" onClick={() => {
+                        router.push("/bookstore")
+                    }}>View More</span>
+                </div>
             </div>
         </div>
     )

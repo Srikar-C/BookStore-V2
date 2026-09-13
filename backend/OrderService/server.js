@@ -8,15 +8,19 @@ import OrderRouter from "./Router/orders.router.js";
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT;
+const port = process.env.PORT || 8083;
+const mongoUri = process.env.NEXT_PUBLIC_API_Order || "mongodb://localhost:27017/bookstore-order";
 
-app.use(cors());
+app.use(cors({
+    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+    credentials: true
+}));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(OrderRouter);
 
 mongoose
-    .connect(process.env.NEXT_PUBLIC_API_Order || "mongodb://localhost:27017/bookstore-order")
+    .connect(mongoUri)
     .then((response) => {
         console.log("Connected to database");
     })

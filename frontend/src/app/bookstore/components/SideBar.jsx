@@ -7,7 +7,7 @@ import { MdFeedback, MdOutlineSpaceDashboard } from "react-icons/md";
 import { RiProfileLine, RiSettingsFill } from "react-icons/ri";
 import { LuBadgeHelp } from "react-icons/lu";
 import { IoMdLogOut } from "react-icons/io";
-import { useAppContext } from "@/app/components/common/AppContext";
+import { useAppContext } from "@/app/hooks/AppContext";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { showError } from "@/app/components/utils/showToasts";
 import { logout } from "@/app/components/utils/userUtils";
@@ -70,6 +70,10 @@ export default function SideBar({ sidebarOpen, setSidebarOpen }) {
         router.push("/bookstore/suggestions");
     }
 
+    function handleHelp() {
+        router.push("/bookstore/help");
+    }
+
     function handleUsers() {
         router.push("/bookstore/users");
     }
@@ -119,14 +123,14 @@ export default function SideBar({ sidebarOpen, setSidebarOpen }) {
                 <section className="flex flex-col gap-2">
                     <h3 className="text-sm text-slate-500">SUPPORT</h3>
                     <Section icon={<MdFeedback />} text="Suggestions" click={handleSuggestions} path="/bookstore/suggestions" url={pathName} />
-                    <Section icon={<LuBadgeHelp />} text="Help" path="/bookstore/help" url={pathName} />
+                    <Section icon={<LuBadgeHelp />} text="Help" click={handleHelp} path="/bookstore/help" url={pathName} />
                 </section>
             </div>
             {/* {user.role == "ADMIN" && <hr className="text-[color:var(--hr)]" />} */}
-            {user?.role == "USER" && <section className="flex flex-col gap-3 mt-auto">
+            <section className="flex flex-col gap-3 mt-auto">
                 <hr className="text-(--hr)" />
                 <Section icon={<IoMdLogOut />} text="Logout" click={() => mutate()} path="/logout" url={pathName} />
-            </section>}
+            </section>
         </div>
     )
 }

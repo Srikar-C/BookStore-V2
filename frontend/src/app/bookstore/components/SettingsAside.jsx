@@ -1,5 +1,5 @@
 "use client"
-import { useAppContext } from "@/app/components/common/AppContext";
+import { useAppContext } from "@/app/hooks/AppContext";
 import { Section } from "@/app/components/utils/FunctionalUtils";
 import Modal from '@mui/material/Modal';
 import { usePathname } from "next/navigation";
@@ -9,7 +9,7 @@ import { RiAccountCircleLine } from "react-icons/ri";
 import { useState } from "react";
 import InputBox from "@/app/user/components/InputBox";
 import { useForm } from "react-hook-form";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { deleteUser, passwordVerify } from "@/app/components/utils/userUtils";
 import { showError, showSuccess } from "@/app/components/utils/showToasts";
 import { useBookStore, useCartStore, useUserStore, useWishListStore } from "@/app/hooks/useStore";
@@ -29,6 +29,7 @@ export default function SettingsAside() {
     const { clearBooks, clearCategories } = useBookStore();
     const { clearWishlist } = useWishListStore();
     const { clearUser } = useUserStore();
+    const queryClient = useQueryClient();
 
     const { mutate: verify, isPending: verifyPending } = useMutation({
         mutationFn: passwordVerify,
@@ -46,13 +47,16 @@ export default function SettingsAside() {
         mutationFn: deleteUser,
         onSuccess: (response) => {
             console.log(response);
+            queryClient.clear();
             clearUser();
             clearBooks();
             clearCarts();
             clearCategories();
             clearWishlist();
+            localStorage.clear();
+            sessionStorage.clear();
             showSuccess("Successfully Account Deleted");
-            router.replace("/user/login");
+            router.replace("/");
         },
         onError: (error) => {
             console.log(error);
