@@ -240,7 +240,7 @@ public class UserService {
             }
             if (request.getPassword().length() < 6) {
                 response = help.error("Password must be at least 6 characters long");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+                return ResponseEntity.status(HttpStatus.LENGTH_REQUIRED).body(response);
             }
             user.setPassword(encoder.encode(request.getPassword()));
             userRepo.save(user);
@@ -270,21 +270,36 @@ public class UserService {
                     response = help.error(sendingOTPTOEmail.getError());
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
                 }
-                VerifyUsers verifyUsers = verifyUserRepo.findByEmail(request.getName());
+                VerifyUsers verifyUsers = verifyUserRepo.findByEmail(user.getEmail());
+                if (verifyUsers == null) {
+                    verifyUsers = new VerifyUsers();
+                    String token = "";
+                    VerifyUsers check;
+                    do {
+                        token = UUID.randomUUID().toString();
+                        check = verifyUserRepo.findByToken(token);
+                    } while (check != null);
+                    verifyUsers.setToken(token);
+                }
+                verifyUsers.setEmail(user.getEmail());
                 verifyUsers.setOtp(otp);
                 verifyUsers.setOtpSession(Instant.now());
                 verifyUsers.setRequestCount(verifyUsers.getRequestCount() + 1);
                 verifyUsers.setUsed(false);
                 verifyUserRepo.save(verifyUsers);
-                response = help.success("OTP Sent Successfully", verifyUsers);
-                return ResponseEntity.status(HttpStatus.OK).body(response);
+
+                VerifyDTO verify = new VerifyDTO();
+                verify.setToken(verifyUsers.getToken());
+
+                response = help.success("User Not Verified, OTP Sent Successfully, Please Verify", verify);
+                return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(response);
             }
             if (!encoder.matches(request.getPassword(), user.getPassword())) {
                 response = help.error("Incorrect Password");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
-            String token = jwt.generateToken(user);
-            Cookie cookie = new Cookie("token", token);
+            String jwtToken = jwt.generateToken(user);
+            Cookie cookie = new Cookie("token", jwtToken);
             cookie.setHttpOnly(true);
             cookie.setSecure(false); // true in production (HTTPS)
             cookie.setPath("/");
@@ -293,33 +308,6 @@ public class UserService {
             response = help.success("User Found", null);
             return ResponseEntity.status(HttpStatus.OK).body(response);
 
-        } catch (Exception e) {
-            response = help.error(e);
-        }
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-    }
-
-    public ResponseEntity<ResponseDTO> getAllUsers(HttpServletRequest http) {
-        ResponseDTO response = new ResponseDTO();
-        String token = null;
-        if (http.getCookies() != null) {
-            token = getTokenFromCookie(http.getCookies());
-        }
-        if (token == null) {
-            response = help.error("Not Logged In");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-        }
-        try {
-            System.out.println("user token: " + token);
-            String userid = jwt.extractUserId(token);
-            Users user = userRepo.findById(userid).orElse(new Users());
-            if (!user.getRole().toString().equals("ADMIN")) {
-                response = help.error("Not Authorised");
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
-            }
-            List<Users> allUser = userRepo.findByRole("USER");
-            response = help.success("Fetched All Users", allUser);
-            return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
             response = help.error(e);
         }
@@ -458,6 +446,51 @@ public class UserService {
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
 
+    }
+
+    public ResponseEntity<ResponseDTO> getAllUsers(HttpServletRequest http) {
+        ResponseDTO response = new ResponseDTO();
+        String token = null;
+        if (http.getCookies() != null) {
+            token = getTokenFromCookie(http.getCookies());
+        }
+        if (token == null) {
+            response = help.error("Not Logged In");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+        try {
+            System.out.println("user token: " + token);
+            String userid = jwt.extractUserId(token);
+            Users user = userRepo.findById(userid).orElse(new Users());
+            if (!user.getRole().toString().equals("ADMIN")) {
+                response = help.error("Not Authorised");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+            }
+            List<Users> allUser = userRepo.findByRole("USER");
+            response = help.success("Fetched All Users", allUser);
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        } catch (Exception e) {
+            response = help.error(e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    public ResponseEntity<ResponseDTO> getAllUsers() {
+        ResponseDTO response = new ResponseDTO();
+        try {
+            long userCount = userRepo.countByRole("USER");
+            long adminCount = userRepo.countByRole("USER");
+            long activeUsers = userRepo.countByIsActive(true);
+            Map<String, Long> counts = new HashMap<>();
+            counts.put("user", userCount);
+            counts.put("admin", adminCount);
+            counts.put("active", activeUsers);
+            response = help.success("Users Count Fetched", counts);
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        } catch (Exception e) {
+            response = help.error(e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
 }

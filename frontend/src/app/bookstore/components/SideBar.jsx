@@ -9,7 +9,7 @@ import { LuBadgeHelp } from "react-icons/lu";
 import { IoMdLogOut } from "react-icons/io";
 import { useAppContext } from "@/app/hooks/AppContext";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { showError } from "@/app/components/utils/showToasts";
+import { showError, showSuccess } from "@/app/components/utils/showToasts";
 import { logout } from "@/app/components/utils/userUtils";
 import Hamburger from "@/app/components/common/Hamburger";
 
@@ -37,6 +37,7 @@ export default function SideBar({ sidebarOpen, setSidebarOpen }) {
             clearWishlist();
             localStorage.clear();
             sessionStorage.clear();
+            showSuccess("Logged Out");
             router.replace("/");
         },
         onError: (response) => {

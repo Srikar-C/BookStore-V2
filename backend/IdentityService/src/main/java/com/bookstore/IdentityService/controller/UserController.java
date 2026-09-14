@@ -90,4 +90,9 @@ public class UserController {
         return service.accessPrivilege(userid, http);
     }
 
+    @GetMapping("/users")
+    public ResponseEntity<ResponseDTO> getAllUsers() {
+        return service.getAllUsers();
+    }
+
 }

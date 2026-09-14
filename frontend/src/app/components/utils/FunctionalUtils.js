@@ -101,3 +101,13 @@ export function getDeliveryStatus(deliveryDate) {
         }
     }
 }
+
+export function getCancelStatus(deliveryDate) {
+    const today = new Date();
+    const delivery = new Date(deliveryDate);
+    today.setHours(0, 0, 0, 0);
+    delivery.setHours(0, 0, 0, 0);
+    const differenceInDays = (delivery.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+    return differenceInDays > 5;
+
+}

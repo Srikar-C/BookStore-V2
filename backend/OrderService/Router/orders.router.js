@@ -213,5 +213,15 @@ router.post("/orders/countOrders", async (req, res) => {
     }
 })
 
+router.get("/orders", async (req, res) => {
+    try {
+        const allorders = await orderModel.find();
+        return res.status(200).json({ success: true, message: "Orders Fetched", data: allorders, error: null });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "Error", data: null, error: error });
+
+    }
+})
+
 
 export default router;

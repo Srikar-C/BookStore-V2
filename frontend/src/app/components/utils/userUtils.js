@@ -51,3 +51,7 @@ export function allUsers(pageNumber, pageSize, role) {
 export function access(userid) {
     return useFetch("get", process.env.NEXT_PUBLIC_API_User, process.env.NEXT_PUBLIC_MAPPING_User, userid, "", true);
 }
+
+export function allUsersStats() {
+    return useFetch("get", process.env.NEXT_PUBLIC_API_User, process.env.NEXT_PUBLIC_MAPPING_User, "users", "", false);
+}

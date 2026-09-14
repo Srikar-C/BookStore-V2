@@ -37,15 +37,16 @@ export default function ResetPassword() {
         },
         onError: (error) => {
             const errorResult = error.data;
+            console.log("Reset Password: ", error);
             if (error.status === 400) {
                 setValue("cfnpassword", "");
                 setError("cfnpassword", {
                     type: "validation",
-                    message: "Not Same as Password"
+                    message: errorResult.error,
                 })
             }
             else {
-                showError(errorResult.message);
+                showError(errorResult.error);
             }
         }
     })

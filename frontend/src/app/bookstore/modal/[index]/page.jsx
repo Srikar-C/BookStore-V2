@@ -1,6 +1,6 @@
 "use client";
 import { useAppContext } from "@/app/hooks/AppContext";
-import { getBook, getBookSuggestions } from "@/app/components/utils/bookUtils";
+import { deleteBook, getBook, getBookSuggestions } from "@/app/components/utils/bookUtils";
 import { removeBookFromCart, updateCart } from "@/app/components/utils/cartUtils";
 import { addWishlist, removeWishlist } from "@/app/components/utils/commonUtils";
 import { showError } from "@/app/components/utils/showToasts";
@@ -181,6 +181,26 @@ export default function Modal() {
         }
     }
 
+    const { mutate: deletingBook, isPending: deleteBookPending } = useMutation({
+        mutationFn: deleteBook,
+        onSuccess: (response) => {
+            showSuccess("Book Deleted");
+            queryClient.invalidateQueries({
+                queryKey: ["allBooks"]
+            })
+        },
+        onError: (error) => {
+            showError("Error in deletion");
+            console.log(error);
+        }
+    })
+
+    function handleDeleteBook() {
+        console.log("clicked", deleteBookPending)
+        if (deleteBookPending) return;
+        deletingBook(book.id);
+    }
+
     if (isPending) {
         return <div>Loading....</div>
     }
@@ -200,27 +220,32 @@ export default function Modal() {
                     <h4 className="font-normal text-justify">₹{bookData?.price}</h4>
                     <span className="font-semibold ">Stock </span>
                     <h4 className="font-normal text-justify">{bookData?.quantity}</h4>
-                    <div className="addTocart col-span-2 w-[30%] bg-(--input-icon) text-white font-semibold justify-center items-center flex px-1 py-2 rounded-xl cursor-pointer"
-                    >
-                        {user?.role === "ADMIN" || user?.role === "SUPERUSER" ?
-                            <span onClick={handleEdit} className="w-full text-center">Edit Book</span> :
-                            bookData?.quantity === 0 ? mode === "display" ?
-                                <span className="w-full text-center">Not Available</span> :
-                                mode === "cart" ? <span className="w-full text-center" onClick={handleDeleteCart}>Delete From Cart</span> :
+                    <div className="col-span-2 flex gap-6 w-[70%]">
+                        <div className="addTocart w-[35%] bg-(--input-icon) text-white font-semibold justify-center items-center flex px-1 py-2 rounded-xl cursor-pointer"
+                        >
+                            {user?.role === "ADMIN" || user?.role === "SUPERUSER" ?
+                                <span onClick={handleEdit} className="w-full text-center">Edit Book</span> :
+                                bookData?.quantity === 0 ? mode === "display" ?
                                     <span className="w-full text-center">Not Available</span> :
-                                customCount === 0 ? <span onClick={handleIncrement} className="w-full text-center"> Add To Cart </span> :
-                                    <div className="flex justify-around items-center w-full">
-                                        {customCount === 1 ? <MdOutlineDeleteForever className="text-xl" onClick={handleDecrement} /> :
-                                            <FaMinus className='text-xl' onClick={handleDecrement} />}
-                                        <input value={customCount} onChange={handleCount} className="w-10 text-center border-none" />
-                                        <FaPlus onClick={handleIncrement} />
-                                    </div>
-                        }
+                                    mode === "cart" ? <span className="w-full text-center" onClick={handleDeleteCart}>Delete From Cart</span> :
+                                        <span className="w-full text-center">Not Available</span> :
+                                    customCount === 0 ? <span onClick={handleIncrement} className="w-full text-center"> Add To Cart </span> :
+                                        <div className="flex justify-around items-center w-full">
+                                            {customCount === 1 ? <MdOutlineDeleteForever className="text-xl" onClick={handleDecrement} /> :
+                                                <FaMinus className='text-xl' onClick={handleDecrement} />}
+                                            <input value={customCount} onChange={handleCount} className="w-10 text-center border-none" />
+                                            <FaPlus onClick={handleIncrement} />
+                                        </div>
+                            }
+                        </div>
+                        {user?.role !== "USER" &&
+                            <span onClick={handleDeleteBook} className=" w-[35%] text-center cursor-pointer border-2 border-(--foreground) rounded-xl p-1 items-center bg-(--foreground) text-(--background)">Delete</span>}
+
                     </div>
-                    <div className="absolute top-5 right-5 border-2 border-(--foreground) p-2 rounded-full cursor-pointer">
+                    {user?.role === "USER" && <div className="absolute top-5 right-5 border-2 border-(--foreground) p-2 rounded-full cursor-pointer">
                         {star ? <FaStar className="text-2xl text-yellow-500 ml-auto" onClick={handleWishlist} /> :
                             <FaRegStar className=" text-2xl" onClick={handleWishlist} />}
-                    </div>
+                    </div>}
                 </div>
             </div>
 

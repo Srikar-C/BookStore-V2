@@ -43,9 +43,9 @@ export default function Register() {
         },
         onError: (error) => {
             console.log(error);
+            const errorResult = error.data;
             if (error.status === 400) {
-                const errors = error.data;
-                Object.entries(errors).forEach(([field, message]) => {
+                Object.entries(errorResult).forEach(([field, message]) => {
                     setError(field, {
                         type: "validation",
                         message: message
@@ -54,8 +54,8 @@ export default function Register() {
                 return;
             }
             else if (error.status === 409) {
-                const result = error.data;
-                const errors = result.error;
+                console.log(error, errorResult.error);
+                const errors = errorResult.error;
                 Object.entries(errors).forEach(([field, message]) => {
                     setError(field, {
                         type: "exists",
@@ -67,6 +67,7 @@ export default function Register() {
         }
     })
 
+    console.log(isPending);
 
     async function onSubmit(data) {
         if (isPending) return;
@@ -74,6 +75,7 @@ export default function Register() {
             ...data,
             role: "USER"
         }
+        console.log("Calling");
         registration(request);
     }
 

@@ -1,6 +1,6 @@
 "use client"
 import { useAppContext } from "@/app/hooks/AppContext";
-import { formattedDate, getDeliveryDate } from "@/app/components/utils/FunctionalUtils";
+import { formattedDate, getDeliveryDate, getDeliveryStatus } from "@/app/components/utils/FunctionalUtils";
 import { setOrder } from "@/app/components/utils/orderUtils";
 import { showError, showInfo, showSuccess } from "@/app/components/utils/showToasts";
 import { useBookStore, useCartStore, useUserStore } from "@/app/hooks/useStore";
@@ -152,7 +152,8 @@ export default function DeliveryDtls() {
             userDtls: {
                 deliveryname: watch("name"),
                 deliveryphone: watch("phone"),
-            }
+            },
+            deliveryStatus: getDeliveryStatus(date),
         };
         bookOrder(order);
     }

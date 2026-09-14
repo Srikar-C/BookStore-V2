@@ -13,6 +13,10 @@ export function getOrders(userid, pageNumber) {
     return useFetch("get", process.env.NEXT_PUBLIC_API_Order, process.env.NEXT_PUBLIC_MAPPING_Order, `${userid}?page=${pageNumber}&size=5`, "", false);
 }
 
+export function getAllOrders() {
+    return useFetch("get", process.env.NEXT_PUBLIC_API_Order, process.env.NEXT_PUBLIC_MAPPING_Order, "", "", false);
+}
+
 
 export function getOrderById(orderid) {
     return useFetch("post", process.env.NEXT_PUBLIC_API_Order, process.env.NEXT_PUBLIC_MAPPING_Order, "orderId", { orderid }, false);

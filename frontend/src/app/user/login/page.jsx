@@ -9,8 +9,9 @@ import { useEffect, useState } from "react";
 import InputBox from "../components/InputBox";
 import { getColor } from "@/app/components/utils/FunctionalUtils";
 import { getCurrentUser, login } from "@/app/components/utils/userUtils";
-import { showError, showSuccess } from "@/app/components/utils/showToasts";
+import { showError, showInfo, showSuccess } from "@/app/components/utils/showToasts";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import UserSkeleton from "@/app/components/skeletons/UserSkeleton";
 export default function Login() {
 
     const { router } = useAppContext();
@@ -50,7 +51,14 @@ export default function Login() {
         },
         onError: (error) => {
             console.log(error);
-            showError(error.data.error);
+            if (error.status === 406) {
+                showInfo(error.data.message);
+                localStorage.setItem("mode", "register");
+                router.replace(`/verify/${error.data.data.token}`)
+            }
+            else {
+                showError(error.data.error);
+            }
         }
     })
 
@@ -59,9 +67,9 @@ export default function Login() {
         logining(data);
     }
 
-    // if (existing) {
-    //     return <UserSkeleton times={2} />
-    // }
+    if (existing) {
+        return <UserSkeleton times={2} />
+    }
 
     return (
         <div className="right rounded-l-2xl p-6 lg:p-10 flex flex-col gap-4 justify-evenly w-full">

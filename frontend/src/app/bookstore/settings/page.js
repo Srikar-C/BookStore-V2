@@ -133,7 +133,7 @@ export default function Settings() {
                         setValue("otp", "");
                     }}>Change Password</span>
             </div>
-            <div className="flex flex-col gap-5 border-2 border-(--foreground) p-3 rounded-xl">
+            {user?.role === "USER" && <div className="flex flex-col gap-5 border-2 border-(--foreground) p-3 rounded-xl">
                 <h4 className="font-semibold text-xl font-serif">Stats</h4>
                 <div className="boxes flex gap-5">
                     <div className="flex justify-between px-4 py-1 rounded-lg w-62.5 h-[15vh] items-center bg-[linear-gradient(135deg,#A97CF8,#F38CB8)] text-(--background) shadow-(color:--shadow)">
@@ -145,7 +145,7 @@ export default function Settings() {
                         <p className="text-lg">{data?.data?.totalBooks}</p>
                     </div>
                 </div>
-            </div>
+            </div>}
             <Modal
                 open={open}
                 onClose={() => setOpen(false)}

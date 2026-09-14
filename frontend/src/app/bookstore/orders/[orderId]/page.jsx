@@ -1,6 +1,6 @@
 "use client"
 import { useAppContext } from "@/app/hooks/AppContext";
-import { formattedDate, getDeliveryStatus } from "@/app/components/utils/FunctionalUtils";
+import { formattedDate, getCancelStatus, getDeliveryStatus } from "@/app/components/utils/FunctionalUtils";
 import { getOrderById } from "@/app/components/utils/orderUtils";
 import { useBookStore, useUserStore } from "@/app/hooks/useStore";
 import { useQuery } from "@tanstack/react-query";
@@ -49,12 +49,20 @@ export default function OrderInvoice() {
     const grandTotal = orderedBooks?.reduce((sum, item) => sum + (item.count * item.price), 0);
 
     const status = getDeliveryStatus(order?.deliveryDate || "");
+    const cancelStatus = getCancelStatus(order?.deliveryDate || "");
+
+    function handleCancel() {
+
+    }
 
     return (
         <div className="p-4 overflow-y-auto w-full h-full bg-(--background) rounded-xl flex flex-col gap-3">
-            <div className="top-left flex items-center gap-1 cursor-pointer" onClick={() => { router.replace("/bookstore/orders") }}>
-                <TbArrowBackUp className="text-xl" />
-                <p>Back to Orders</p>
+            <div className="top-left flex justify-between">
+                <div className="flex items-center gap-1 cursor-pointer" onClick={() => { router.replace("/bookstore/orders") }}>
+                    <TbArrowBackUp className="text-xl" />
+                    <p>Back to Orders</p>
+                </div>
+                {cancelStatus && <span className="text-white bg-red-600 cursor-pointer px-4 py-1 rounded-xl font-semibold" onClick={handleCancel}>Cancel Order</span>}
             </div>
             <div className="grid grid-cols-[0.8fr_0.8fr] gap-10">
                 <div className="left flex flex-col gap-4">

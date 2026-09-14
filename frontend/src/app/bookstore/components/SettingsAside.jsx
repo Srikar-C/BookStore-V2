@@ -13,6 +13,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { deleteUser, passwordVerify } from "@/app/components/utils/userUtils";
 import { showError, showSuccess } from "@/app/components/utils/showToasts";
 import { useBookStore, useCartStore, useUserStore, useWishListStore } from "@/app/hooks/useStore";
+import { ChartNoAxesColumn, Check } from "lucide-react";
 
 export default function SettingsAside() {
 
@@ -28,7 +29,7 @@ export default function SettingsAside() {
     const { clearCarts } = useCartStore();
     const { clearBooks, clearCategories } = useBookStore();
     const { clearWishlist } = useWishListStore();
-    const { clearUser } = useUserStore();
+    const { user, clearUser } = useUserStore();
     const queryClient = useQueryClient();
 
     const { mutate: verify, isPending: verifyPending } = useMutation({
@@ -77,12 +78,18 @@ export default function SettingsAside() {
         { delte && deletion() }
     }
 
+    function handleStats() {
+        router.push("/bookstore/settings/stats");
+    }
 
     return (
         <div className={`flex flex-col gap-5 border-r-2 border-(--shadow) items-center w-full h-full p-1 `}>
             <section className="flex flex-col gap-2 w-full">
                 <Section icon={<RiAccountCircleLine />} text="Account" click={handleAccount} path="/bookstore/settings/account" url={pathName} />
-                <Section icon={<FaStar />} text="Wishlist" click={handleWishlist} path="/bookstore/settings/wishlist" url={pathName} />
+                {user?.role === "USER" && (
+                    <Section icon={<FaStar />} text="Wishlist" click={handleWishlist} path="/bookstore/settings/wishlist" url={pathName} />
+                )}
+                <Section icon={<ChartNoAxesColumn />} text="Stats" click={handleStats} path="/bookstore/settings/stats" url={pathName} />
             </section>
             <section className="flex flex-col gap-2 mt-auto w-full">
                 <Section icon={<MdDeleteOutline />} text="Delete Account" click={() => setOpen(true)} path="/bookstore/settings/delete" url={pathName} />

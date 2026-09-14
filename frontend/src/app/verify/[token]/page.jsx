@@ -1,6 +1,6 @@
 "use client"
 import { useAppContext } from "@/app/hooks/AppContext";
-import { showError, showSuccess, showWarning } from "@/app/components/utils/showToasts";
+import { showError, showInfo, showSuccess, showWarning } from "@/app/components/utils/showToasts";
 import { getUserFromToken, sendOTP, verifyOTP } from "@/app/components/utils/userUtils";
 import InputBox from "@/app/user/components/InputBox";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -21,23 +21,22 @@ export default function Verify() {
     });
     const { router } = useAppContext();
 
-
     const { data, isPending: tokenLoading, isSuccess, isError } = useQuery({
         queryKey: ['token', token],
         queryFn: () => getUserFromToken(token),
         select: (response) => response?.data,
     });
 
-    // useEffect(() => {
-    //     if (!tokenLoading) return;
-    //     const mode = localStorage.getItem("mode");
-    //     if (mode == null) {
-    //         router.replace("/user/login");
-    //         setTimeout(() => {
-    //             showInfo("You Cannot access Verification Page Directly");
-    //         }, 500);
-    //     }
-    // }, [router])
+    useEffect(() => {
+        if (!tokenLoading) return;
+        const mode = localStorage.getItem("mode");
+        if (mode == null) {
+            router.replace("/user/login");
+            setTimeout(() => {
+                showInfo("You Cannot access Verification Page Directly");
+            }, 500);
+        }
+    }, [router])
 
     useEffect(() => {
         if (isSuccess && data?.success && data?.data?.email) {

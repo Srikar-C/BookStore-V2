@@ -48,3 +48,9 @@ export const useWishListStore = create((set) => ({
     setWishlist: (wishlist) => set({ wishlist }),
     clearWishlist: () => set({ wishlist: [] })
 }))
+
+export const useOrderStore = create((set) => ({
+    orders: [],
+    setOrders: (orders) => set({ orders }),
+    clearOrders: () => set({ orders: [] })
+}))

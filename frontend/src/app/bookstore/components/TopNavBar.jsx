@@ -9,6 +9,7 @@ import { useState } from "react"
 import { FaArrowDown, FaArrowUp, FaSearch } from "react-icons/fa";
 import { MdClear } from "react-icons/md";
 import { RxCross2 } from "react-icons/rx";
+import { X } from "lucide-react";
 
 export default function TopNavBar() {
 
@@ -105,7 +106,7 @@ export default function TopNavBar() {
                 </div>}
                 <div className="flex gap-2 items-center justify-between px-3 py-1 w-75 shadow-md bg-(--section-hover) rounded-xl" >
                     <FaSearch className="text-lg" />
-                    <input type="search" value={searchText} onChange={(e) => {
+                    <input type="text" value={searchText} onChange={(e) => {
                         setSearchText(e.target.value);
                     }}
                         className="text-sm px-2 py-1 w-full border-none outline-none"
@@ -117,6 +118,13 @@ export default function TopNavBar() {
                                 })
                             }
                         }} />
+                    {searchText.length > 0 && <X onClick={() => {
+                        setSearch("");
+                        queryClient.invalidateQueries({
+                            queryKey: ["allBooks", 0, 0, searchText, selectedcategory, sortBy]
+                        });
+                        setSearchText("");
+                    }} className="text-xl cursor-pointer" />}
                 </div>
                 {pathName == "/bookstore/carts" && <button type="submit"
                     className="text-white flex items-center font-semibold px-4 rounded-xl bg-green-500 cursor-pointer"

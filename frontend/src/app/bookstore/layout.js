@@ -1,16 +1,17 @@
 "use client"
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import SideBar from "./components/SideBar";
 import TopNavBar from "./components/TopNavBar";
 import { getCurrentUser } from "../components/utils/userUtils";
 import { useEffect, useState } from "react";
-import { useBookStore, useCartStore, useUserStore, useWishListStore } from "../hooks/useStore";
+import { useBookStore, useCartStore, useOrderStore, useUserStore, useWishListStore } from "../hooks/useStore";
 import { useAppContext } from "../hooks/AppContext";
 import { showInfo } from "../components/utils/showToasts";
 import { getAllCarts } from "../components/utils/cartUtils";
 import { getAllBooks } from "../components/utils/bookUtils";
 import { getWishlist } from "../components/utils/commonUtils";
 import BookStoreSkeleton from "../components/skeletons/BookStoreSkeleton";
+import { getAllOrders } from "../components/utils/orderUtils";
 
 export default function BookStoreLayout({ children }) {
 
@@ -21,6 +22,8 @@ export default function BookStoreLayout({ children }) {
     const { setCarts, clearCarts } = useCartStore();
     const { setBooks, clearBooks, setCategories, clearCategories } = useBookStore();
     const { setWishlist, clearWishlist } = useWishListStore();
+    const { setOrders } = useOrderStore();
+    const queryClient = useQueryClient();
 
     const { data: userData, isPending: userPending, isSuccess: userSuccess, isError: userError } = useQuery({
         queryKey: ["currentUser"],
@@ -37,11 +40,14 @@ export default function BookStoreLayout({ children }) {
             return;
         }
         else if (userError || (!userSuccess || !userData?.success)) {
+            queryClient.clear();
             clearUser();
             clearBooks();
             clearCarts();
             clearCategories();
             clearWishlist();
+            localStorage.clear();
+            sessionStorage.clear();
             showInfo("Session expired, Please Login");
             router.replace("/user/login");
         }
@@ -96,6 +102,7 @@ export default function BookStoreLayout({ children }) {
             setWishlist(wishlistData?.data);
         }
     }, [wishlistData, wishlistSuccess, setWishlist]);
+
 
     if (userPending && !user) {
         return <BookStoreSkeleton />

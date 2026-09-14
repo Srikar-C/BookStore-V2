@@ -48,14 +48,14 @@ export default function BookStoreLandingPage() {
         };
     });
 
-    const sortedBooks = [
-        ...(booksWithCartCount ?? []).filter(
-            (book) => book.quantity > 0 && book.count > book.quantity
-        ),
-        ...(booksWithCartCount ?? []).filter(
-            (book) => !(book.quantity > 0 && book.count > book.quantity)
-        )
-    ];
+    // const sortedBooks = [
+    //     ...(booksWithCartCount ?? []).filter(
+    //         (book) => book.quantity > 0 && book.count > book.quantity
+    //     ),
+    //     ...(booksWithCartCount ?? []).filter(
+    //         (book) => !(book.quantity > 0 && book.count > book.quantity)
+    //     )
+    // ];
 
     function handleBookSortByCategory(item) {
         console.log("item selected: ", item);
@@ -93,7 +93,7 @@ export default function BookStoreLandingPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 p-4">
                 {isPending ?
-                    <BookSkeleton /> : sortedBooks?.map((item) => (
+                    <BookSkeleton /> : booksWithCartCount?.map((item) => (
                         <BookCard key={item.id} book={item} mode="display" />
                     ))}
             </div>
