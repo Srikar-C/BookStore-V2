@@ -1,6 +1,6 @@
 import { colors } from "@/app/user/styles/style";
 import { FaTruckMoving } from "react-icons/fa";
-import { FcShipped } from "react-icons/fc";
+import { FcCancel, FcShipped } from "react-icons/fc";
 import { ImHome } from "react-icons/im";
 
 export function HashTag({ icon, text }) {
@@ -53,7 +53,7 @@ export function Section({ icon, text, click, path, url, count }) {
     )
 }
 
-export function getDeliveryDate(setDate, orderedBooks) {
+export function getDeliveryDate(orderedBooks) {
     const today = new Date();
     let daysToAdd;
     if (orderedBooks.length < 5) {
@@ -62,7 +62,7 @@ export function getDeliveryDate(setDate, orderedBooks) {
         daysToAdd = Math.ceil(orderedBooks.length / 2);
     }
     today.setDate(today.getDate() + daysToAdd);
-    setDate(today);
+    return today;
 }
 
 export function formattedDate(date) {
@@ -75,39 +75,55 @@ export function formattedDate(date) {
 }
 
 
-export function getDeliveryStatus(deliveryDate) {
-    const today = new Date();
-    const delivery = new Date(deliveryDate);
-    today.setHours(0, 0, 0, 0);
-    delivery.setHours(0, 0, 0, 0);
+export function getDeliveryStatus(deliveryDtls) {
+    const status = deliveryDtls?.deliveryStatus;
 
-    if (delivery > today) {
+    if (status === "pending") {
         return {
             text: "On the Way",
             icon: <FaTruckMoving className="text-xl text-blue-700" />,
-            subtext: "Delivery by"
+            subtext: `Delivery by ${formattedDate(deliveryDtls?.deliveryDate)}`
         }
-    } else if (delivery.getTime() === today.getTime()) {
+    } else if (status === "shipped") {
         return {
-            text: "Deliver Today",
+            text: "Shipped",
             icon: <ImHome className="text-xl text-orange-500" />,
-            subtext: "Delivery by"
+            subtext: `Delivery by ${formattedDate(deliveryDtls?.deliveryDate)}`
         }
-    } else {
+    } else if (status === "cancelled") {
+        return {
+            text: "Order Cancelled",
+            icon: <FcCancel className="text-xl" />,
+            subtext: `Order was Cancelled`
+        }
+    }
+    else {
         return {
             text: "Order Delivered",
             icon: <FcShipped className="text-xl" />,
-            subtext: "Delivered On"
+            subtext: `Delivered On ${formattedDate(deliveryDtls?.deliveryDate)}`
         }
     }
 }
 
-export function getCancelStatus(deliveryDate) {
+export function getCancelStatus(createdDate, deliveryDate) {
     const today = new Date();
+    const created = new Date(createdDate);
     const delivery = new Date(deliveryDate);
     today.setHours(0, 0, 0, 0);
+    created.setHours(0, 0, 0, 0);
     delivery.setHours(0, 0, 0, 0);
-    const differenceInDays = (delivery.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
-    return differenceInDays > 5;
+    const differenceToday = (delivery.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+    const differenceDelivery = (delivery.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
+    console.log("Diff", differenceToday, differenceDelivery / 2);
+    return (differenceDelivery / 2) <= differenceToday;
+}
 
+export function getDeliveryStatusForTracking(shippingDate, deliveryDate) {
+    const createdAt = new Date(shippingDate);
+    const delivery = new Date(deliveryDate);
+    return new Date(
+        createdAt.getTime() +
+        (delivery.getTime() - createdAt.getTime()) / 2
+    );
 }

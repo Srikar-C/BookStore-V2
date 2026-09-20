@@ -7,10 +7,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +19,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.bookstore.IdentityService.DTO.request.LoginDTO;
 import com.bookstore.IdentityService.DTO.request.OTPDTO;
@@ -36,6 +38,7 @@ import com.bookstore.IdentityService.repository.UserRepository;
 import com.bookstore.IdentityService.repository.VerifyUserRepository;
 import com.bookstore.IdentityService.util.Helper;
 import com.bookstore.IdentityService.util.OrderFeign;
+import com.bookstore.IdentityService.util.CommonFeign;
 import com.bookstore.IdentityService.util.RegisterUtil;
 
 import jakarta.servlet.http.Cookie;
@@ -45,26 +48,36 @@ import jakarta.servlet.http.HttpServletResponse;
 @Service
 public class UserService {
 
-    @Autowired
-    private Helper help;
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
-    @Autowired
-    private RegisterUtil registerUtil;
+    private final Helper help;
 
-    @Autowired
-    private VerifyUserRepository verifyUserRepo;
+    private final RegisterUtil registerUtil;
 
-    @Autowired
-    private UserRepository userRepo;
+    private final VerifyUserRepository verifyUserRepo;
 
-    @Autowired
-    private BCryptPasswordEncoder encoder;
+    private final UserRepository userRepo;
 
-    @Autowired
-    private JWTService jwt;
+    private final BCryptPasswordEncoder encoder;
 
-    @Autowired
-    private OrderFeign orderFeign;
+    private final JWTService jwt;
+
+    private final OrderFeign orderFeign;
+
+    private final CommonFeign commonFeign;
+
+    public UserService(Helper help, RegisterUtil registerUtil, VerifyUserRepository verifyUserRepo,
+            UserRepository userRepo, BCryptPasswordEncoder encoder, JWTService jwt, OrderFeign orderFeign,
+            CommonFeign commonFeign) {
+        this.help = help;
+        this.registerUtil = registerUtil;
+        this.verifyUserRepo = verifyUserRepo;
+        this.userRepo = userRepo;
+        this.encoder = encoder;
+        this.jwt = jwt;
+        this.orderFeign = orderFeign;
+        this.commonFeign = commonFeign;
+    }
 
     @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<ResponseDTO> register(RegisterDTO request) {
@@ -73,26 +86,26 @@ public class UserService {
             // Existence Check in Main Table
             SubResponse existMain = registerUtil.isExists(request);
             if (!existMain.isSuccess()) {
-                response = help.error(existMain.getError());
+                response = help.errorResponse(existMain.getError());
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
             }
 
             // Create in Users Table
             SubResponse creation = registerUtil.create(request);
             if (!creation.isSuccess()) {
-                response = help.error(creation.getError());
+                response = help.errorResponse(creation.getError());
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
             }
 
-            if (request.getRole().equals("ADMIN")) {
-                response = help.success("Successfully Registered", creation.getData());
+            if ("ADMIN".equals(request.getRole())) {
+                response = help.successResponse("Successfully Registered", creation.getData());
                 return ResponseEntity.status(HttpStatus.CREATED).body(response);
             }
 
             // Create in Verify Table
             SubResponse verifyCreation = registerUtil.createVerify(request);
             if (!verifyCreation.isSuccess()) {
-                response = help.error(verifyCreation.getError());
+                response = help.errorResponse(verifyCreation.getError());
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
             }
 
@@ -101,13 +114,14 @@ public class UserService {
             VerifyUsers verifyUser = (VerifyUsers) verifyCreation.getData();
             SubResponse sendingOTPToEmail = help.sendOTP(user.getEmail(), user.getName(), verifyUser.getOtp());
             if (!sendingOTPToEmail.isSuccess()) {
-                response = help.error(sendingOTPToEmail.getError());
+                response = help.errorResponse(sendingOTPToEmail.getError());
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
             }
-            response = help.success("User Registered. Please Verify", verifyUser);
+            response = help.successResponse("User Registered. Please Verify", verifyUser);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to register user", e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
@@ -116,10 +130,11 @@ public class UserService {
         ResponseDTO response = new ResponseDTO();
         try {
             VerifyUsers user = verifyUserRepo.findByToken(request.getToken());
-            response = help.success("Fetched User", user);
+            response = help.successResponse("Fetched User", user);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to fetch verification user", e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
@@ -127,27 +142,27 @@ public class UserService {
     public ResponseEntity<ResponseDTO> verifyOTP(OTPDTO request) {
         ResponseDTO response = new ResponseDTO();
         if (!help.isSpecified(request.getOtp())) {
-            response = help.error("OTP is required");
+            response = help.errorResponse("OTP is required");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
         try {
             VerifyUsers verifyUser = verifyUserRepo.findByEmail(request.getEmail());
             if (verifyUser == null) {
-                response = help.error("No User exist with this Email");
+                response = help.errorResponse("No User exist with this Email");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
             }
             if (!request.getOtp().toString().equals(verifyUser.getOtp())) {
-                response = help.error("Invalid OTP");
+                response = help.errorResponse("Invalid OTP");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
             if (verifyUser.isUsed()) {
-                response = help.error("OTP already Used, Please request again");
+                response = help.errorResponse("OTP already Used, Please request again");
                 return ResponseEntity.status(HttpStatus.GONE).body(response);
             }
             Duration time = help.calculateDuration(verifyUser.getOtpSession());
-            System.out.println("TIme: " + time + " " + time.getSeconds());
+            logger.debug("OTP age: {} seconds", time.getSeconds());
             if (time.getSeconds() >= 301) {
-                response = help.error("OTP Expired, Request again");
+                response = help.errorResponse("OTP Expired, Request again");
                 return ResponseEntity.status(HttpStatus.GONE).body(response);
             }
 
@@ -155,12 +170,17 @@ public class UserService {
             VerifyUsers updatedVerifyUsers = verifyUserRepo.save(verifyUser);
 
             Users user = userRepo.findByEmail(updatedVerifyUsers.getEmail());
+            if (user == null) {
+                response = help.errorResponse("No User exist with this Email");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
             user.setActive(true);
             Users updatedUser = userRepo.save(user);
-            response = help.success("OTP Verified", updatedUser);
+            response = help.successResponse("OTP Verified", updatedUser);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to verify OTP", e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
@@ -170,21 +190,23 @@ public class UserService {
         try {
             Users user = userRepo.findByEmail(request.getEmail());
             if (user == null) {
-                response = help.error("No User exist with this Email");
+                response = help.errorResponse("No User exist with this Email");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
             }
             VerifyUsers verifyUsers = verifyUserRepo.findByEmail(request.getEmail());
             if (user.getRole().equals("USER") && verifyUsers == null) {
-                response = help.error("No User exist with this Email");
+                response = help.errorResponse("No User exist with this Email");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
             }
+            int requestCount = verifyUsers == null || verifyUsers.getRequestCount() == null
+                    ? 0
+                    : verifyUsers.getRequestCount();
             if (verifyUsers != null) {
-                Integer requestCount = verifyUsers.getRequestCount() == null ? 0 : verifyUsers.getRequestCount();
-                if (verifyUsers.getRequestCount() > 5) {
+                if (requestCount > 5) {
                     Duration time = help.calculateDuration(verifyUsers.getOtpSession());
-                    System.out.println("TIme: " + time + " " + time.getSeconds());
+                    logger.debug("OTP age: {} seconds", time.getSeconds());
                     if (time.getSeconds() < 901) {
-                        response = help.error("OTP Limit Exceeded, Try after 15 minutes");
+                        response = help.errorResponse("OTP Limit Exceeded, Try after 15 minutes");
                         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response);
                     } else {
                         requestCount = 0;
@@ -197,7 +219,7 @@ public class UserService {
 
             SubResponse sendingOTPTOEmail = help.sendOTP(user.getEmail(), user.getName(), otp);
             if (!sendingOTPTOEmail.isSuccess()) {
-                response = help.error(sendingOTPTOEmail.getError());
+                response = help.errorResponse(sendingOTPTOEmail.getError());
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
             if (verifyUsers != null) {
@@ -222,10 +244,11 @@ public class UserService {
             VerifyDTO verify = new VerifyDTO();
             verify.setToken(verifyUsers.getToken());
 
-            response = help.success("OTP Sent Successfully", verify);
+            response = help.successResponse("OTP Sent Successfully", verify);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to send OTP", e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
@@ -234,20 +257,25 @@ public class UserService {
         ResponseDTO response = new ResponseDTO();
         try {
             Users user = userRepo.findByEmail(request.getEmail());
+            if (user == null) {
+                response = help.errorResponse("No User exist with this Email");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
             if (!request.getPassword().toString().equals(request.getCfnpassword().toString())) {
-                response = help.error("Passwords Not Same");
+                response = help.errorResponse("Passwords Not Same");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
             if (request.getPassword().length() < 6) {
-                response = help.error("Password must be at least 6 characters long");
+                response = help.errorResponse("Password must be at least 6 characters long");
                 return ResponseEntity.status(HttpStatus.LENGTH_REQUIRED).body(response);
             }
             user.setPassword(encoder.encode(request.getPassword()));
             userRepo.save(user);
-            response = help.success("Password Changed Successfully", null);
+            response = help.successResponse("Password Changed Successfully", null);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to reset password", e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
@@ -258,16 +286,16 @@ public class UserService {
         try {
             Users user = userRepo.findByEmailOrName(request.getName(), request.getName());
             if (user == null) {
-                response = help.error("User Not Found");
+                response = help.errorResponse("User Not Found");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
             }
 
             if (!user.isActive()) {
-                response = help.error("User Not Verified");
+                response = help.errorResponse("User Not Verified");
                 String otp = help.generateOTP();
                 SubResponse sendingOTPTOEmail = help.sendOTP(user.getEmail(), user.getName(), otp);
                 if (!sendingOTPTOEmail.isSuccess()) {
-                    response = help.error(sendingOTPTOEmail.getError());
+                    response = help.errorResponse(sendingOTPTOEmail.getError());
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
                 }
                 VerifyUsers verifyUsers = verifyUserRepo.findByEmail(user.getEmail());
@@ -281,21 +309,24 @@ public class UserService {
                     } while (check != null);
                     verifyUsers.setToken(token);
                 }
+                int requestCount = verifyUsers.getRequestCount() == null
+                        ? 0
+                        : verifyUsers.getRequestCount();
                 verifyUsers.setEmail(user.getEmail());
                 verifyUsers.setOtp(otp);
                 verifyUsers.setOtpSession(Instant.now());
-                verifyUsers.setRequestCount(verifyUsers.getRequestCount() + 1);
+                verifyUsers.setRequestCount(requestCount + 1);
                 verifyUsers.setUsed(false);
                 verifyUserRepo.save(verifyUsers);
 
                 VerifyDTO verify = new VerifyDTO();
                 verify.setToken(verifyUsers.getToken());
 
-                response = help.success("User Not Verified, OTP Sent Successfully, Please Verify", verify);
+                response = help.successResponse("User Not Verified, OTP Sent Successfully, Please Verify", verify);
                 return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(response);
             }
             if (!encoder.matches(request.getPassword(), user.getPassword())) {
-                response = help.error("Incorrect Password");
+                response = help.errorResponse("Incorrect Password");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
             String jwtToken = jwt.generateToken(user);
@@ -305,22 +336,14 @@ public class UserService {
             cookie.setPath("/");
             cookie.setMaxAge(60 * 60);
             http.addCookie(cookie);
-            response = help.success("User Found", null);
+            response = help.successResponse("User Found", null);
             return ResponseEntity.status(HttpStatus.OK).body(response);
 
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to log in user", e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-    }
-
-    private String getTokenFromCookie(Cookie[] cookies) {
-        for (Cookie cookie : cookies) {
-            if (cookie.getName().equals("token")) {
-                return cookie.getValue();
-            }
-        }
-        return null;
     }
 
     public String insertDummy(long count, String role) {
@@ -348,21 +371,23 @@ public class UserService {
             userRepo.saveAll(users);
             return "Inserted " + count + " rows of " + role;
         } catch (Exception e) {
+            logger.error("Failed to insert dummy users", e);
             return e.toString();
         }
     }
 
     public ResponseEntity<ResponseDTO> getAllUsers(int pageNumber, int pageSize, String role, HttpServletRequest http) {
         ResponseDTO response = new ResponseDTO();
-        String token = null;
-        if (http.getCookies() != null) {
-            token = getTokenFromCookie(http.getCookies());
-        }
-        if (token == null) {
-            response = help.error("Not Logged In");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        response = help.checkUserExistence(http);
+
+        if (!response.isSuccess()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
         try {
+            if (pageNumber < 0 || pageSize < 1 || role == null || role.isBlank()) {
+                response = help.errorResponse("Invalid user list parameters");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
             Pageable pageable = PageRequest.of(pageNumber, pageSize);
             Page<Users> users = userRepo.findByRole(role.toUpperCase(), pageable);
             Map<String, Object> result = new HashMap<>();
@@ -378,18 +403,34 @@ public class UserService {
                 allUsers.add(dto);
             }
             List<String> userIds = allUsers.stream().map(UserOrderDTO::getId).toList();
-            UserIdOrderCountDTO userIdOrderCountDTO = new UserIdOrderCountDTO();
-            userIdOrderCountDTO.setUserIds(userIds);
-            orderCountResult = orderFeign.getUserOrderCount(userIdOrderCountDTO);
             Map<String, BigDecimal> orderCountMap = new HashMap<>();
-            if (orderCountResult.getBody().isSuccess()) {
-                List<Map<String, Object>> orderCountList = (List<Map<String, Object>>) orderCountResult.getBody()
-                        .getData();
-                System.out.println("Order Count List: " + orderCountList);
-                for (Map<String, Object> orderCount : orderCountList) {
-                    String userId = (String) orderCount.get("userId");
-                    BigDecimal count = new BigDecimal(orderCount.get("orderCount").toString());
-                    orderCountMap.put(userId, count);
+            if (!userIds.isEmpty() && "USER".equals(role.toUpperCase().toString())) {
+                UserIdOrderCountDTO userIdOrderCountDTO = new UserIdOrderCountDTO();
+                userIdOrderCountDTO.setUserIds(userIds);
+                orderCountResult = orderFeign.getUserOrderCount(userIdOrderCountDTO);
+                if (orderCountResult.getBody().isSuccess()) {
+                    List<Map<String, Object>> orderCountList = (List<Map<String, Object>>) orderCountResult.getBody()
+                            .getData();
+                    logger.debug("Fetched order counts for {} users", orderCountList.size());
+                    for (Map<String, Object> orderCount : orderCountList) {
+                        String userId = (String) orderCount.get("userId");
+                        BigDecimal count = new BigDecimal(orderCount.get("orderCount").toString());
+                        orderCountMap.put(userId, count);
+                    }
+                }
+            } else {
+                UserIdOrderCountDTO userIdOrderCountDTO = new UserIdOrderCountDTO();
+                userIdOrderCountDTO.setUserIds(userIds);
+                orderCountResult = commonFeign.checkAccessPrivileges(userIdOrderCountDTO);
+                logger.info("Ordercountresult for admins ", orderCountResult.getBody());
+                System.out.println("Ordercountresult for admins " + orderCountResult.getBody());
+                if (orderCountResult.getBody().isSuccess()) {
+                    Map<String, Boolean> accessPrivileges = (Map<String, Boolean>) orderCountResult.getBody().getData();
+                    accessPrivileges.forEach((userId, hasAccess) -> {
+                        orderCountMap.put(
+                                userId,
+                                hasAccess ? BigDecimal.ONE : BigDecimal.ONE.negate());
+                    });
                 }
             }
             for (UserOrderDTO user : allUsers) {
@@ -403,74 +444,44 @@ public class UserService {
             result.put("pageSize", users.getSize());
             result.put("isFirst", users.isFirst());
             result.put("isLast", users.isLast());
-            response = help.success("Fetched Users", result);
+            response = help.successResponse("Fetched Users", result);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to fetch users", e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-    }
-
-    public ResponseEntity<ResponseDTO> accessPrivilege(String userid, HttpServletRequest http) {
-        ResponseDTO response = new ResponseDTO();
-        String token = null;
-        if (http.getCookies() != null) {
-            token = getTokenFromCookie(http.getCookies());
-        }
-        if (token == null) {
-            response = help.error("Not Logged In");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-        }
-        try {
-            String crntUserid = jwt.extractUserId(token);
-            Users user = userRepo.findById(crntUserid).orElse(new Users());
-            if (user == null) {
-                response = help.error("Not Logged In");
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-            }
-            if (!user.getRole().toString().equals("SUPERUSER")) {
-                response = help.error("No Access");
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
-            }
-            Users adminUser = userRepo.findById(userid).orElse(new Users());
-            if (adminUser == null) {
-                response = help.error("User Not Found");
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-            }
-            adminUser.setActive(!adminUser.isActive());
-            userRepo.save(adminUser);
-            response = help.success("Access Updated", null);
-            return ResponseEntity.status(HttpStatus.OK).body(response);
-        } catch (Exception e) {
-            response = help.error(e);
-        }
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-
     }
 
     public ResponseEntity<ResponseDTO> getAllUsers(HttpServletRequest http) {
         ResponseDTO response = new ResponseDTO();
-        String token = null;
-        if (http.getCookies() != null) {
-            token = getTokenFromCookie(http.getCookies());
+        response = help.checkUserExistence(http);
+
+        if (!response.isSuccess()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
-        if (token == null) {
-            response = help.error("Not Logged In");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-        }
+        String token = response.getData().toString();
         try {
-            System.out.println("user token: " + token);
             String userid = jwt.extractUserId(token);
-            Users user = userRepo.findById(userid).orElse(new Users());
-            if (!user.getRole().toString().equals("ADMIN")) {
-                response = help.error("Not Authorised");
+            Optional<Users> currentUser = userRepo.findById(userid);
+            if (currentUser.isEmpty()) {
+                response = help.errorResponse("User Not Found");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+            Users user = currentUser.get();
+            if (!"ADMIN".equals(user.getRole())) {
+                response = help.errorResponse("Not Authorised");
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
             }
-            List<Users> allUser = userRepo.findByRole("USER");
-            response = help.success("Fetched All Users", allUser);
+            List<UserOrderDTO> allUser = userRepo.findByRole("USER").stream()
+                    .map(item -> new UserOrderDTO(item.getId(), item.getEmail(), item.getPhone(), item.getName(),
+                            item.isActive(), BigDecimal.ZERO))
+                    .toList();
+            response = help.successResponse("Fetched All Users", allUser);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to fetch all users", e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
@@ -479,18 +490,40 @@ public class UserService {
         ResponseDTO response = new ResponseDTO();
         try {
             long userCount = userRepo.countByRole("USER");
-            long adminCount = userRepo.countByRole("USER");
+            long adminCount = userRepo.countByRole("ADMIN");
             long activeUsers = userRepo.countByIsActive(true);
             Map<String, Long> counts = new HashMap<>();
             counts.put("user", userCount);
             counts.put("admin", adminCount);
             counts.put("active", activeUsers);
-            response = help.success("Users Count Fetched", counts);
+            response = help.successResponse("Users Count Fetched", counts);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to fetch user counts", e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    public ResponseEntity<ResponseDTO> getUserDetails(String userid) {
+        ResponseDTO response = new ResponseDTO();
+        try {
+            Optional<Users> user = userRepo.findById(userid);
+            if (user.isEmpty()) {
+                response = help.errorResponse("User Not Found");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+            Users userdtls = user.get();
+            Map<String, String> dtls = new HashMap<>();
+            dtls.put(userdtls.getId(), userdtls.getRole());
+            response = help.successResponse("User Details Fetched", dtls);
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        } catch (Exception e) {
+            logger.error("Failed to fetch user details", e);
+            response = help.errorResponse(e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+
     }
 
 }

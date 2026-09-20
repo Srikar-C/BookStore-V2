@@ -5,6 +5,10 @@ const orderItemSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    url: {
+        type: String,
+        required: true
+    },
     count: {
         type: Number,
         required: true,
@@ -14,6 +18,14 @@ const orderItemSchema = new mongoose.Schema({
         type: Number,
         required: true,
         min: 0,
+    },
+    title: {
+        type: String,
+        required: true
+    },
+    author: {
+        type: String,
+        required: true,
     }
 }, { _id: false });
 
@@ -31,7 +43,7 @@ const orderSchema = new mongoose.Schema({
         required: true,
         min: 0,
     },
-    location: {
+    locationDtls: {
         latitude: String,
         longitude: String,
         display_name: String,
@@ -40,10 +52,17 @@ const orderSchema = new mongoose.Schema({
         deliveryname: String,
         deliveryphone: String,
     },
-    deliveryDate: {
-        type: Date,
-        required: true,
-    }
+    deliveryDtls: {
+        deliveryDate: {
+            type: Date,
+            required: true,
+        },
+        deliveryStatus: {
+            type: String,
+            enum: ["pending", "shipped", "delivered", "cancelled"],
+            default: "pending"
+        }
+    },
 }, {
     timestamps: true
 });

@@ -1,7 +1,9 @@
 "use client"
 
+import UserSkeleton from "@/app/components/skeletons/UserSkeleton";
+import { changeAccess } from "@/app/components/utils/commonUtils";
 import { showError } from "@/app/components/utils/showToasts";
-import { access, allUsers } from "@/app/components/utils/userUtils"
+import { allUsers } from "@/app/components/utils/userUtils"
 import { useUserStore } from "@/app/hooks/useStore";
 import Pagination from "@mui/material/Pagination";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -38,7 +40,7 @@ export default function Users() {
     }, [isPending, data])
 
     const { mutate, isPending: accessPending } = useMutation({
-        mutationFn: access,
+        mutationFn: changeAccess,
         onSuccess: (response) => {
             console.log(response);
             queryClient.invalidateQueries({
@@ -96,7 +98,7 @@ export default function Users() {
                 {role == "user" && <span>BlockList</span>}
             </div>
             <div className="loop mx-10">
-                {users?.map((item, index) => {
+                {!isPending ? users?.map((item, index) => {
                     return (
                         <div key={index} className="flex flex-col gap-2">
                             <div className={`grid ${role == "user" ? "grid-cols-6" : "grid-cols-5"} gap-4 p-2 text-center`}>
@@ -105,7 +107,7 @@ export default function Users() {
                                 <span>{item.phone}</span>
                                 <span>{item.email}</span>
                                 {role == "user" ? item.orderCount :
-                                    user?.role == "SUPERUSER" ? item.active ?
+                                    user?.role == "SUPERUSER" ? item.orderCount == 1 ?
                                         <div className="flex gap-2 items-center mx-auto">
                                             <span className="bg-green-700 p-2 text-white rounded-xl">Access Granted</span>
                                             <ImCross className="text-red-700 text-xl cursor-pointer" onClick={() => handleAdminAccess(item.id)} />
@@ -113,14 +115,14 @@ export default function Users() {
                                         <div className="flex gap-2 items-center mx-auto">
                                             <span className="bg-red-700 p-2 text-white rounded-xl">Access Revoked</span>
                                             <TiTick className="text-green-700 text-xl cursor-pointer" onClick={() => handleAdminAccess(item.id)} />
-                                        </div> : <span className={`${item.active ? "bg-green-700" : "bg-red-700"} p-2 text-white rounded-xl`}>{item.active ? "Access Granted" : "Access Revoked"}</span>
+                                        </div> : <span className={`${item.orderCount == 1 ? "bg-green-700" : "bg-red-700"} p-2 text-white rounded-xl`}>{item.orderCount == 1 ? "Access Granted" : "Access Revoked"}</span>
                                 }
                                 {role === "user" && <span>Not Blocked</span>}
                             </div>
                             <hr className="text-(--hr)" />
                         </div>
                     )
-                })}
+                }) : <UserSkeleton />}
             </div>
             <div className="pagintion w-full flex justify-center">
                 <Pagination count={Math.max(data?.data?.totalPages, 1)} page={pageNumber + 1} color="secondary"

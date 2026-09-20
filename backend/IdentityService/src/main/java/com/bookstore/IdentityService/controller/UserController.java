@@ -85,14 +85,13 @@ public class UserController {
         return service.getAllUsers(page, size, role, http);
     }
 
-    @GetMapping("{userid}")
-    public ResponseEntity<ResponseDTO> accessPrivilege(@PathVariable String userid, HttpServletRequest http) {
-        return service.accessPrivilege(userid, http);
-    }
-
     @GetMapping("/users")
     public ResponseEntity<ResponseDTO> getAllUsers() {
         return service.getAllUsers();
     }
 
+    @GetMapping("{userid}")
+    public ResponseEntity<ResponseDTO> getUserDetails(@PathVariable String userid) {
+        return service.getUserDetails(userid);
+    }
 }

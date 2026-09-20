@@ -5,6 +5,7 @@ import bodyParser from "body-parser";
 import dotenv from "dotenv";
 import CartRouter from "./Router/carts.router.js";
 import cookieParser from "cookie-parser";
+import requestId from "./util/requestId.js";
 
 dotenv.config();
 
@@ -19,6 +20,7 @@ app.use(cors({
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());
+app.use(requestId);
 
 app.use(CartRouter);
 

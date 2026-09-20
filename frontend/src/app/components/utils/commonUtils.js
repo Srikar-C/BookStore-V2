@@ -21,3 +21,11 @@ export function removeWishlist(bookid) {
 export function getWishlist() {
     return useFetch("get", process.env.NEXT_PUBLIC_API_Common, process.env.NEXT_PUBLIC_MAPPING_Common, "wishlist", "", true);
 }
+
+export function getAccessDtls() {
+    return useFetch("get", process.env.NEXT_PUBLIC_API_Common, process.env.NEXT_PUBLIC_MAPPING_Common, "access", "", true);
+}
+
+export function changeAccess(userid) {
+    return useFetch("get", process.env.NEXT_PUBLIC_API_Common, process.env.NEXT_PUBLIC_MAPPING_Common, `access/${userid}`, "", true);
+}

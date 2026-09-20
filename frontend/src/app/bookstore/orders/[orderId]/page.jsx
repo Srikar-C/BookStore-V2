@@ -1,15 +1,16 @@
 "use client"
 import { useAppContext } from "@/app/hooks/AppContext";
 import { formattedDate, getCancelStatus, getDeliveryStatus } from "@/app/components/utils/FunctionalUtils";
-import { getOrderById } from "@/app/components/utils/orderUtils";
+import { cancelOrder, getOrderById } from "@/app/components/utils/orderUtils";
 import { useBookStore, useUserStore } from "@/app/hooks/useStore";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, usePathname } from "next/navigation";
 import { LuDot } from "react-icons/lu";
 import { RiBillLine } from "react-icons/ri";
 import { TbArrowBackUp, TbSum } from "react-icons/tb";
 import { BsBasket3 } from "react-icons/bs";
 import OrderInvoiceSkeleton from "@/app/components/skeletons/OrderInvoiceSkeleton";
+import { showError, showSuccess } from "@/app/components/utils/showToasts";
 
 export default function OrderInvoice() {
     const { orderId } = useParams();
@@ -17,6 +18,7 @@ export default function OrderInvoice() {
     const { books } = useBookStore();
     const { user } = useUserStore();
     const pathName = usePathname();
+    const queryClient = useQueryClient();
 
     console.log("pathname: ", pathName);
 
@@ -25,34 +27,40 @@ export default function OrderInvoice() {
         queryFn: () => getOrderById(orderId),
         select: (response) => response?.data
     })
-    console.log("invoice: ", data, data?.data, isPending);
-
-    if (isPending) {
-        return <OrderInvoiceSkeleton />
-    }
 
     const order = data?.data;
-    console.log("order: ", order);
-
     const orderedBooks = order?.books.filter((item) => item.count)
-        .map((item) => {
-            const book = books.find((b) => b.id === item.bookId);
-
-            return {
-                ...book,
-                count: item.count,
-                price: item.price
-            };
-        });
 
     const totalItems = orderedBooks?.reduce((sum, item) => sum + item.count, 0);
     const grandTotal = orderedBooks?.reduce((sum, item) => sum + (item.count * item.price), 0);
 
-    const status = getDeliveryStatus(order?.deliveryDate || "");
-    const cancelStatus = getCancelStatus(order?.deliveryDate || "");
+    const status = getDeliveryStatus(order?.deliveryDtls || "");
+    const cancelStatus = getCancelStatus(order?.createdAt, order?.deliveryDtls?.deliveryDate || "");
+
+    console.log("cancel: ", cancelStatus);
+
+    const { mutate, isPending: cancelPending } = useMutation({
+        mutationFn: cancelOrder,
+        onSuccess: (response) => {
+            console.log(response);
+            router.replace("/bookstore");
+            queryClient.invalidateQueries({
+                queryKey: ["allBooks"],
+            })
+            showSuccess("Order Cancelled Successfully");
+        },
+        onError: (error) => {
+            console.log(error);
+            showError(error);
+        }
+    })
 
     function handleCancel() {
+        mutate(orderId)
+    }
 
+    if (isPending) {
+        return <OrderInvoiceSkeleton />
     }
 
     return (
@@ -62,7 +70,7 @@ export default function OrderInvoice() {
                     <TbArrowBackUp className="text-xl" />
                     <p>Back to Orders</p>
                 </div>
-                {cancelStatus && <span className="text-white bg-red-600 cursor-pointer px-4 py-1 rounded-xl font-semibold" onClick={handleCancel}>Cancel Order</span>}
+                {order?.deliveryDtls?.deliveryStatus !== "cancelled" && cancelStatus && <span className="text-white bg-red-600 cursor-pointer px-4 py-1 rounded-xl font-semibold" onClick={handleCancel}>Cancel Order</span>}
             </div>
             <div className="grid grid-cols-[0.8fr_0.8fr] gap-10">
                 <div className="left flex flex-col gap-4">
@@ -79,17 +87,17 @@ export default function OrderInvoice() {
                         <h4 className="text-xl font-serif font-semibold flex items-center gap-1"><BsBasket3 /> Order Details</h4>
                         <div className="grid grid-cols-[1fr_1fr] gap-4">
                             <span className="font-semibold">Order Id</span>
-                            <span>{order._id}</span>
+                            <span>{order?._id}</span>
                             <span className="font-semibold">Delivery Address</span>
-                            <span>{order.location?.display_name || "Delivery Address Missed"}</span>
+                            <span>{order?.locationDtls?.display_name || "Delivery Address Missed"}</span>
                             <span className="font-semibold">Order Placed On</span>
-                            <span>{formattedDate(order.createdAt)}</span>
+                            <span>{formattedDate(order?.createdAt)}</span>
                             <span className="font-semibold">Order Delivery By</span>
-                            <span>{formattedDate(order.deliveryDate)}</span>
+                            <span>{formattedDate(order?.deliveryDtls?.deliveryDate)}</span>
                             <span className="font-semibold">Receiver Details</span>
-                            <span className="uppercase">{order.userDtls?.deliveryname || user.name}</span>
+                            <span className="uppercase">{order?.userDtls?.deliveryname || user.name}</span>
                             <span className="font-semibold">Receiver Phone</span>
-                            <span>{order.userDtls?.deliveryphone || user.phone}</span>
+                            <span>{order?.userDtls?.deliveryphone || user.phone}</span>
                         </div>
                     </div>
                     <div className="flex flex-col gap-3 p-3 border-2 border-(--foreground) rounded-xl">

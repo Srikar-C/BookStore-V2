@@ -1,12 +1,12 @@
 "use client"
-import { getDeliveryStatus, HashTag } from "@/app/components/utils/FunctionalUtils";
+import { getDeliveryStatus } from "@/app/components/utils/FunctionalUtils";
 import { getAllOrders } from "@/app/components/utils/orderUtils";
 import { allUsersStats } from "@/app/components/utils/userUtils";
-import { useBookStore, useOrderStore, useUserStore } from "@/app/hooks/useStore"
+import { useBookStore } from "@/app/hooks/useStore"
 import { useQuery } from "@tanstack/react-query";
-import { BookOpenText, DollarSign, ShoppingBag, Users, Vault } from "lucide-react";
-import { useEffect } from "react";
+import { BookOpenText, DollarSign, ShoppingBag, Users } from "lucide-react";
 import OrderPieChart from "../components/OrderPieChart";
+import "@/app/styles.css";
 
 export default function Stats() {
 
@@ -28,26 +28,26 @@ export default function Stats() {
         return <div>....Loading</div>
     }
 
-    const ordersList = ordersData?.data ?? [];
+    const totalBooks = books?.length;
+
     const usersList = usersData?.data ?? [];
-    const totalOrders = ordersList?.length ?? 0;
     const userCount = usersList?.user;
     const adminCount = usersList?.admin;
     const activeUsers = usersList?.active;
-    const totalBooks = books?.length;
+
+    const ordersList = ordersData?.data ?? [];
+    const totalOrders = ordersList?.length ?? 0;
     const totalRevenue = ordersList?.reduce((sum, order) => sum + (order.price || 0), 0);
     const totalItemsSold = ordersList?.reduce((sum, order) =>
         sum + (order.books?.reduce((itemSum, item) => itemSum + (item.count || 0), 0))
         , 0);
     const deliveredOrders = ordersList?.reduce((sum, order) => {
-        const deliveryStatus = getDeliveryStatus(order?.deliveryDate);
+        const deliveryStatus = getDeliveryStatus(order?.deliveryDtls);
         if (deliveryStatus.text === "Order Delivered") {
             return sum + 1;
         }
         return sum;
     }, 0)
-
-    console.log("Dfgdfhfdg", ordersList);
 
     const stats = [
         {
@@ -80,8 +80,6 @@ export default function Stats() {
         }
     ]
 
-    console.log("stats data: ", ordersData, usersData);
-
     const userCats = [
         {
             label: "Total Users",
@@ -103,10 +101,10 @@ export default function Stats() {
 
     return (
         // <div className="grid grid-rows-2">
-        <div className="grid grid-cols-3 gap-4 justify-between items-center my-auto w-full h-full">
+        <div className="grid grid-cols-3 gap-4 justify-between items-center my-auto w-full h-full overflow-y-auto custom-scrollbar px-4">
             <div className={`rounded-2xl border border-(--border) bg-(--card) p-3 h-full w-full flex flex-col justify-center shadow-sm row-span-2`}>
-                <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-blue-500 to-cyan-500 text-white`}>
-                    <Users />
+                <div className={`mb-4 flex h-30 w-30 items-center justify-center rounded-xl bg-linear-to-br from-blue-500 to-cyan-500 text-white`}>
+                    <Users className="h-16 w-16" />
                 </div>
                 {userCats.map((item, index) => {
                     return (
@@ -133,7 +131,7 @@ export default function Stats() {
             ))}
             <div className="flex w-full col-span-3 gap-5">
                 <h2 className="text-3xl font-semibold w-fit">Orders Status</h2>
-                <OrderPieChart />
+                <OrderPieChart ordersData={ordersData} />
             </div>
         </div>
         // </div>

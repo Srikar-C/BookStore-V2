@@ -27,7 +27,7 @@ export default function Settings() {
 
     const { data, isPending } = useQuery({
         queryKey: ["ordersCount", user?.id],
-        queryFn: () => countOrders(user?.id),
+        queryFn: countOrders,
         select: (response) => response?.data
     })
 
@@ -113,7 +113,7 @@ export default function Settings() {
     }
 
     return (
-        <div className="flex flex-col gap-4 p-4">
+        <div className="flex flex-col gap-4 p-4 overflow-y-auto">
             <h4 className="font-semibold text-xl font-serif">User Details</h4>
             <div className="box grid grid-cols-2 gap-3 border-2 border-(--foreground) p-3 rounded-xl">
                 <span className="font-semibold">UserId</span>
@@ -136,11 +136,11 @@ export default function Settings() {
             {user?.role === "USER" && <div className="flex flex-col gap-5 border-2 border-(--foreground) p-3 rounded-xl">
                 <h4 className="font-semibold text-xl font-serif">Stats</h4>
                 <div className="boxes flex gap-5">
-                    <div className="flex justify-between px-4 py-1 rounded-lg w-62.5 h-[15vh] items-center bg-[linear-gradient(135deg,#A97CF8,#F38CB8)] text-(--background) shadow-(color:--shadow)">
+                    <div className="flex justify-between px-4 py-1 rounded-lg w-62.5 h-[15vh] items-center bg-[linear-gradient(135deg,#2563eb,#60a5fa)] text-(--background) shadow-(color:--shadow)">
                         <h6 className="text-xl font-semibold">Total Number of Orders</h6>
                         <p className="text-lg">{data?.data?.totalOrders}</p>
                     </div>
-                    <div className="flex justify-between px-4 py-1 rounded-lg w-62.5 h-[15vh] items-center bg-[linear-gradient(135deg,#A97CF8,#F38CB8)] text-(--background) shadow-(color:--shadow)">
+                    <div className="flex justify-between px-4 py-1 rounded-lg w-62.5 h-[15vh] items-center bg-[linear-gradient(135deg,#2563eb,#60a5fa)] text-(--background) shadow-(color:--shadow)">
                         <h6 className="text-xl font-semibold">Total Number of Units</h6>
                         <p className="text-lg">{data?.data?.totalBooks}</p>
                     </div>

@@ -12,3 +12,12 @@ export async function generatedId() {
 
     return `ORD${String(counter.sequence).padStart(13, "0")}`;
 }
+
+
+export function successResponse(message, data = null) {
+    return { success: true, message: message, data: data, error: null };
+}
+
+export function errorResponse(errorMessage, error) {
+    return { success: false, message: errorMessage, data: null, error: error };
+}

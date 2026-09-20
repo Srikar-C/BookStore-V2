@@ -89,7 +89,7 @@ export default function TopNavBar() {
     }
 
     return (
-        <div className="top flex items-center gap-3 justify-between bg-(--background) px-5 py-2 w-full rounded-lg h-[8vh]">
+        <div className="top flex items-center gap-3 justify-between bg-(--background) px-5 py-2 w-full rounded-bl-xl h-[8vh]">
             <div className="left">
                 <h2 className="text-xl font-semibold">Welcome Back!</h2>
             </div>
@@ -104,7 +104,7 @@ export default function TopNavBar() {
                         <span onClick={() => handleSort("quantity,desc")}>Stock: High to Low</span>
                     </div>
                 </div>}
-                <div className="flex gap-2 items-center justify-between px-3 py-1 w-75 shadow-md bg-(--section-hover) rounded-xl" >
+                {pathName === "/bookstore" && <div className="flex gap-2 items-center justify-between px-3 py-1 w-75 shadow-md bg-(--section-hover) rounded-xl" >
                     <FaSearch className="text-lg" />
                     <input type="text" value={searchText} onChange={(e) => {
                         setSearchText(e.target.value);
@@ -125,9 +125,9 @@ export default function TopNavBar() {
                         });
                         setSearchText("");
                     }} className="text-xl cursor-pointer" />}
-                </div>
+                </div>}
                 {pathName == "/bookstore/carts" && <button type="submit"
-                    className="text-white flex items-center font-semibold px-4 rounded-xl bg-green-500 cursor-pointer"
+                    className="text-white flex items-center font-semibold px-4 py-2 rounded-xl bg-green-500 cursor-pointer"
                     onClick={handleCheckout}>
                     Checkout</button>}
                 {pathName == "/bookstore/carts" && <button type="submit"

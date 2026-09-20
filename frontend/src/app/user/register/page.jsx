@@ -4,12 +4,13 @@ import Link from "next/link";
 import { FaPhoneAlt, FaUserAlt } from "react-icons/fa";
 import { MdEmail, MdOutlinePassword } from "react-icons/md";
 import { useAppContext } from "@/app/hooks/AppContext";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import InputBox from "../components/InputBox";
-import { registerUser } from "@/app/components/utils/userUtils";
-import { showSuccess } from "@/app/components/utils/showToasts";
+import { getCurrentUser, registerUser } from "@/app/components/utils/userUtils";
+import { showInfo, showSuccess } from "@/app/components/utils/showToasts";
 import { getColor } from "@/app/components/utils/FunctionalUtils";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import IdentitySkeleton from "@/app/components/skeletons/IdentitySkeleton";
 
 export default function Register() {
 
@@ -32,6 +33,22 @@ export default function Register() {
             getColor(field, focusedField, errors)
         ])
     );
+
+    const { data, isPending: existing, isSuccess, isError } = useQuery({
+        queryKey: ["currentUser"],
+        queryFn: getCurrentUser,
+        select: (response) => response?.data
+    });
+
+    useEffect(() => {
+        if (existing) return;
+        if (!existing && isSuccess && data?.success && data?.data) {
+            showInfo("User Already exist, please logout");
+            router.replace("/bookstore");
+            return;
+        }
+        router.replace("/user/login");
+    }, [existing, isError, isSuccess, router])
 
     const { mutate: registration, isPending } = useMutation({
         mutationFn: registerUser,
@@ -67,8 +84,6 @@ export default function Register() {
         }
     })
 
-    console.log(isPending);
-
     async function onSubmit(data) {
         if (isPending) return;
         const request = {
@@ -77,6 +92,10 @@ export default function Register() {
         }
         console.log("Calling");
         registration(request);
+    }
+
+    if (existing) {
+        return <IdentitySkeleton times={4} />
     }
 
     return (

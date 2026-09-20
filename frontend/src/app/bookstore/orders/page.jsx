@@ -5,6 +5,7 @@ import { useUserStore } from "@/app/hooks/useStore"
 import { useInfiniteQuery } from "@tanstack/react-query"
 import OrderCard from "../components/OrderCard";
 import OrderSkeleton from "@/app/components/skeletons/OrderSkeleton";
+import "@/app/styles.css";
 
 export default function Orders() {
 
@@ -21,7 +22,7 @@ export default function Orders() {
     //with pagination
     const { data, isPending, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
         queryKey: ["getOrders", user?.id],
-        queryFn: ({ pageParam }) => getOrders(user?.id, pageParam),
+        queryFn: ({ pageParam }) => getOrders(pageParam),
         initialPageParam: 0,
         getNextPageParam: (lastPage) => {
             console.log("lastpage: ", lastPage);
@@ -45,7 +46,7 @@ export default function Orders() {
     console.log("orders:", data, orders);
 
     return (
-        <div className="flex flex-col overflow-y-auto w-full h-full bg-(--background) rounded-xl p-3">
+        <div className="flex flex-col overflow-y-auto w-full h-full bg-(--background) rounded-l-xl p-3 custom-scrollbar">
             {orders?.length <= 0 && <div className="text-gray-400 text-2xl text-center justify-center font-semibold py-5">No Orders Before</div>}
             {orders?.length > 0 && <h3 className="text-3xl font-serif">Orders</h3>}
             {orders?.map((order) => (

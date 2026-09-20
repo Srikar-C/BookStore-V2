@@ -1,7 +1,8 @@
 import axios from "axios";
 
-export default async function useFetch(httpRequest, port, requestmapping, endpoint, payload, withCredentials) {
-    console.log(`Request send to backend in endpoint ${endpoint}: `, httpRequest, port, requestmapping, endpoint, payload, withCredentials);
+export default async function useFetch(httpRequest, port, requestmapping, endpoint, payload, withCredentials, requestId) {
+    console.log(`[requestId=${requestId ?? "-"}] Request send to backend in endpoint ${endpoint}: `,
+        httpRequest, port, requestmapping, endpoint, payload, withCredentials);
     try {
         const response = await axios({
             method: httpRequest,
@@ -11,14 +12,16 @@ export default async function useFetch(httpRequest, port, requestmapping, endpoi
                     `${port}/${requestmapping}/${endpoint}`
                 : `${port}/${requestmapping}`,
             data: payload,
-            withCredentials: withCredentials
+            withCredentials: withCredentials,
+            headers: requestId ? { "X-Request-ID": requestId } : undefined
         });
         const result = response.data;
-        console.log(`Response send to frontend in endpoint ${endpoint}: `, result);
+        console.log(`[requestId=${requestId ?? "-"}] Response send to frontend in endpoint ${endpoint}: `, result);
         return response;
     }
     catch (error) {
-        console.log(`Response send to frontend in endpoint ${endpoint}: `, error.response.data);
-        throw error.response;
+        console.log(`[requestId=${requestId ?? "-"}] Response send to frontend in endpoint ${endpoint}: `,
+            error.response?.data ?? error);
+        throw error.response ?? error;
     }
 }

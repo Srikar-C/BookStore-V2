@@ -9,12 +9,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import com.bookstore.BookService.controller.BookController;
-
 @Component
 @Aspect
 public class LoggingAspect {
-    private static final Logger logger = LoggerFactory.getLogger(BookController.class);
+    private static final Logger logger = LoggerFactory.getLogger(LoggingAspect.class);
 
     @Around("execution(* com.bookstore.BookService.controller..*(..))")
     public Object logMethod(ProceedingJoinPoint jp) throws Throwable {

@@ -11,7 +11,7 @@ import { getColor } from "@/app/components/utils/FunctionalUtils";
 import { getCurrentUser, login } from "@/app/components/utils/userUtils";
 import { showError, showInfo, showSuccess } from "@/app/components/utils/showToasts";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import UserSkeleton from "@/app/components/skeletons/UserSkeleton";
+import IdentitySkeleton from "@/app/components/skeletons/IdentitySkeleton";
 export default function Login() {
 
     const { router } = useAppContext();
@@ -24,8 +24,13 @@ export default function Login() {
     const { errors } = formState;
     const [focusedField, setFocusedField] = useState(null);
 
-    const nameColor = getColor("name", focusedField, errors);
-    const passwordColor = getColor("password", focusedField, errors);
+    const fields = ["name", "password"];
+    const colors = Object.fromEntries(
+        fields.map((field) => [
+            field,
+            getColor(field, focusedField, errors)
+        ])
+    );
 
     const { data, isPending: existing, isSuccess, isError } = useQuery({
         queryKey: ["currentUser"],
@@ -68,7 +73,7 @@ export default function Login() {
     }
 
     if (existing) {
-        return <UserSkeleton times={2} />
+        return <IdentitySkeleton times={2} />
     }
 
     return (
@@ -78,8 +83,8 @@ export default function Login() {
                 <p className="text-sm text-slate-500">Access your account to buy books, track orders, and enjoy priority support.</p>
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="inputs flex flex-col gap-5">
-                <InputBox label="Username/Email" field="name" icon={<FaUserAlt />} loading={isPending} register={register} setFocusedField={setFocusedField} errors={errors.name?.message} color={nameColor} type="text" />
-                <InputBox label="Password" field="password" icon={<MdOutlinePassword />} loading={isPending} register={register} setFocusedField={setFocusedField} errors={errors.password?.message} color={passwordColor} type="password" />
+                <InputBox label="Username/Email" field="name" icon={<FaUserAlt />} loading={isPending} register={register} setFocusedField={setFocusedField} errors={errors.name?.message} color={colors.name} type="text" />
+                <InputBox label="Password" field="password" icon={<MdOutlinePassword />} loading={isPending} register={register} setFocusedField={setFocusedField} errors={errors.password?.message} color={colors.password} type="password" />
                 <button type="submit"
                     disabled={isPending}
                     title={!isPending ? "Please Fill All Details" : "Login"}

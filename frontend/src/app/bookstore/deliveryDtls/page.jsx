@@ -1,11 +1,11 @@
 "use client"
 import { useAppContext } from "@/app/hooks/AppContext";
-import { formattedDate, getDeliveryDate, getDeliveryStatus } from "@/app/components/utils/FunctionalUtils";
+import { formattedDate, getDeliveryDate, getDeliveryStatus, getDeliveryStatusForTracking } from "@/app/components/utils/FunctionalUtils";
 import { setOrder } from "@/app/components/utils/orderUtils";
 import { showError, showInfo, showSuccess } from "@/app/components/utils/showToasts";
 import { useBookStore, useCartStore, useUserStore } from "@/app/hooks/useStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { TbSum } from "react-icons/tb";
 import { PuffLoader } from "react-spinners";
@@ -20,7 +20,6 @@ export default function DeliveryDtls() {
         longitude: "",
         display_name: "",
     });
-    const [date, setDate] = useState(null);
     const { router, cartId, selectedcategory, search, sortBy } = useAppContext();
     const queryClient = useQueryClient();
 
@@ -62,55 +61,36 @@ export default function DeliveryDtls() {
         });
     }, []);
 
-    const cartBooks = carts.filter((item) => item.count)
-        .map((item) => {
-            const book = books.find((b) => b.id === item.bookId);
+    const cartBooks = useMemo(() => {
+        return carts.filter((item) => item.count)
+            .map((item) => {
+                const book = books.find((b) => b.id === item.bookId);
+                return {
+                    ...book, count: item.count
+                }
+            })
+    }, [carts, books])
 
-            return {
-                ...book,
-                count: item.count
-            };
-        });
-
-    const orderedBooks = cartBooks.map((item) => {
-        return {
+    const orderedBooks = useMemo(() => {
+        return cartBooks.map((item) => ({
             bookId: item.id,
             bookQuantity: item.quantity,
             bookPrice: item.price,
             bookCount: item.count,
             bookUrl: item.url,
             bookName: item.title,
-        }
-    })
+            bookAuthor: item.author,
+        }))
+    }, [cartBooks]);
 
-    const orders = {
-        userId: user.id,
-        cartId: cartId,
-        books: orderedBooks.map((item) => {
-            return {
-                bookId: item.bookId,
-                count: item.bookCount,
-                price: item.bookPrice,
-            }
-        }),
-        location: location,
-        userDtls: {
-            deliveryname: "",
-            deliveryphone: "",
-        },
-        deliveryBy: date
-    };
+    const deliveryDate = useMemo(() => {
+        return getDeliveryDate(orderedBooks);
+    }, [orderedBooks]);
 
-    useEffect(() => {
-        if (orderedBooks.length > 0) {
-            getDeliveryDate(setDate, orderedBooks);
-        }
-    }, [orderedBooks.length]);
+    const previewBooks = useMemo(() => orderedBooks.slice(0, 7), [orderedBooks]);
 
-    const previewBooks = orderedBooks.slice(0, 7);
-
-    const totalItems = orderedBooks.reduce((sum, item) => sum + item.bookCount, 0);
-    const grandTotal = orderedBooks.reduce((sum, item) => sum + (item.bookCount * item.bookPrice), 0);
+    const totalItems = useMemo(() => orderedBooks.reduce((sum, item) => sum + item.bookCount, 0), [orderedBooks]);
+    const grandTotal = useMemo(() => orderedBooks.reduce((sum, item) => sum + (item.bookCount * item.bookPrice), 0), [orderedBooks]);
 
     function onSubmit(data) {
         if (locLoad) return;
@@ -142,9 +122,19 @@ export default function DeliveryDtls() {
     })
 
     function handleOrder() {
-        const order = {
-            ...orders,
-            location: {
+        const orders = {
+            cartId: cartId,
+            books: orderedBooks.map((item) => {
+                return {
+                    bookId: item.bookId,
+                    url: item.bookUrl,
+                    count: item.bookCount,
+                    price: item.bookPrice,
+                    title: item.bookName,
+                    author: item.bookAuthor,
+                }
+            }),
+            locationDtls: {
                 latitude: location.latitude,
                 longitude: location.longitude,
                 display_name: watch("address"),
@@ -153,9 +143,12 @@ export default function DeliveryDtls() {
                 deliveryname: watch("name"),
                 deliveryphone: watch("phone"),
             },
-            deliveryStatus: getDeliveryStatus(date),
+            deliveryDtls: {
+                deliveryDate: deliveryDate,
+                deliveryStatus: "pending"
+            }
         };
-        bookOrder(order);
+        bookOrder(orders);
     }
 
     return (
@@ -203,7 +196,7 @@ export default function DeliveryDtls() {
                                     : <span className="bg-gray-300 text-black">{watch("address")}</span>
                             }
                             <span className="font-semibold text-start">Delivery By</span>
-                            <span className="bg-gray-300 text-black">{formattedDate(date)}</span>
+                            <span className="bg-gray-300 text-black">{formattedDate(deliveryDate)}</span>
                         </div>
                     </div>
                     <form onSubmit={handleSubmit(onSubmit)} className={`btns flex items-center justify-around *:font-semibold`}>

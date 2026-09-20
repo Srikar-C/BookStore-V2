@@ -80,7 +80,7 @@ export default function SideBar({ sidebarOpen, setSidebarOpen }) {
     }
 
     return (
-        <div className="main flex flex-col gap-1 py-3 px-2 bg-(--background) rounded-xl w-full h-full relative">
+        <div className="main flex flex-col gap-1 py-3 px-2 bg-(--background) rounded-r-xl w-full h-full relative">
             <div className="user flex gap-2 items-center mb-5">
                 <div className="logo flex">
                     <Avatar sx={{

@@ -21,11 +21,11 @@ public class Helper {
     @Autowired
     private BookRepository repo;
 
-    public ResponseDTO success(String message, Object object) {
+    public ResponseDTO successResponse(String message, Object object) {
         return new ResponseDTO(true, message, null, object);
     }
 
-    public ResponseDTO error(Object error) {
+    public ResponseDTO errorResponse(Object error) {
         return new ResponseDTO(false, "Error", error, null);
     }
 

@@ -6,6 +6,11 @@ export const useUserStore = create((set) => ({
     clearUser: () => set({ user: null })
 }))
 
+export const useUserAccessStore = create((set) => ({
+    userAccess: null,
+    setUserAccess: (userAccess) => set({ userAccess }),
+    clearUserAccess: () => set({ userAccess: null })
+}))
 
 export const useBookStore = create((set) => ({
     books: [],

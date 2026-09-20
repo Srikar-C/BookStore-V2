@@ -4,6 +4,9 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
 import OrderRouter from "./Router/orders.router.js";
+import requestId from "./util/requestId.js";
+import cookieParser from "cookie-parser";
+import { startOrderScheduler } from "./scheduler/order.scheduler.js";
 
 dotenv.config();
 
@@ -17,6 +20,8 @@ app.use(cors({
 }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(cookieParser());
+app.use(requestId);
 app.use(OrderRouter);
 
 mongoose
@@ -28,6 +33,8 @@ mongoose
         console.log("Error connecting to database", err);
     });
 
+
+startOrderScheduler();
 
 app.listen(port, () => {
     console.log(`Order Server is running on http://localhost:${port}`);

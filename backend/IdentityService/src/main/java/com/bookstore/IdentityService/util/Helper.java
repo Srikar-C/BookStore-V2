@@ -13,6 +13,9 @@ import org.springframework.stereotype.Component;
 import com.bookstore.IdentityService.DTO.response.ResponseDTO;
 import com.bookstore.IdentityService.DTO.response.SubResponse;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+
 @Component
 public class Helper {
 
@@ -22,11 +25,11 @@ public class Helper {
     @Autowired
     private JavaMailSender mailSender;
 
-    public ResponseDTO success(String message, Object object) {
+    public ResponseDTO successResponse(String message, Object object) {
         return new ResponseDTO(true, message, null, object);
     }
 
-    public ResponseDTO error(Object error) {
+    public ResponseDTO errorResponse(Object error) {
         return new ResponseDTO(false, "Error", error, null);
     }
 
@@ -86,5 +89,28 @@ public class Helper {
 
     public boolean isSpecified(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+    public ResponseDTO checkUserExistence(HttpServletRequest http) {
+        ResponseDTO response = new ResponseDTO();
+        String token = null;
+        if (http.getCookies() != null) {
+            token = getTokenFromCookie(http.getCookies());
+        }
+        if (token == null) {
+            response = errorResponse("Not Logged In");
+            return response;
+        }
+        response = successResponse("User Exist", token);
+        return response;
+    }
+    
+    private String getTokenFromCookie(Cookie[] cookies) {
+        for (Cookie cookie : cookies) {
+            if (cookie.getName().equals("token")) {
+                return cookie.getValue();
+            }
+        }
+        return null;
     }
 }

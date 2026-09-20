@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.bookstore.CommonService.DTO.request.SuggestionDTO;
+import com.bookstore.CommonService.DTO.request.UserIdOrderCountDTO;
 import com.bookstore.CommonService.DTO.response.ResponseDTO;
 import com.bookstore.CommonService.service.CommonService;
 
@@ -54,5 +55,20 @@ public class CommonController {
     @DeleteMapping("wishlist/{userid}")
     public ResponseEntity<ResponseDTO> deleteWishlist(@PathVariable String userid) {
         return service.deleteWishlist(userid);
+    }
+
+    @GetMapping("access")
+    public ResponseEntity<ResponseDTO> checkAccess(HttpServletRequest http) {
+        return service.checkAccessandPrivilege(http);
+    }
+
+    @PostMapping("access") 
+    public ResponseEntity<ResponseDTO> checkAccess(@RequestBody UserIdOrderCountDTO request) {
+        return service.checkAccessandPrivilege(request);
+    }
+
+    @GetMapping("access/{userid}")
+    public ResponseEntity<ResponseDTO> changeAccess(@PathVariable String userid, HttpServletRequest http) {
+        return service.changeAccessandPrivilege(userid,http);
     }
 }

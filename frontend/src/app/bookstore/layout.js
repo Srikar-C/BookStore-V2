@@ -4,12 +4,11 @@ import SideBar from "./components/SideBar";
 import TopNavBar from "./components/TopNavBar";
 import { getCurrentUser } from "../components/utils/userUtils";
 import { useEffect, useState } from "react";
-import { useBookStore, useCartStore, useOrderStore, useUserStore, useWishListStore } from "../hooks/useStore";
+import { useBookStore, useCartStore, useOrderStore, useUserAccessStore, useUserStore, useWishListStore } from "../hooks/useStore";
 import { useAppContext } from "../hooks/AppContext";
-import { showInfo } from "../components/utils/showToasts";
 import { getAllCarts } from "../components/utils/cartUtils";
 import { getAllBooks } from "../components/utils/bookUtils";
-import { getWishlist } from "../components/utils/commonUtils";
+import { getAccessDtls, getWishlist } from "../components/utils/commonUtils";
 import BookStoreSkeleton from "../components/skeletons/BookStoreSkeleton";
 import { getAllOrders } from "../components/utils/orderUtils";
 
@@ -22,7 +21,7 @@ export default function BookStoreLayout({ children }) {
     const { setCarts, clearCarts } = useCartStore();
     const { setBooks, clearBooks, setCategories, clearCategories } = useBookStore();
     const { setWishlist, clearWishlist } = useWishListStore();
-    const { setOrders } = useOrderStore();
+    const { setUserAccess } = useUserAccessStore();
     const queryClient = useQueryClient();
 
     const { data: userData, isPending: userPending, isSuccess: userSuccess, isError: userError } = useQuery({
@@ -48,12 +47,11 @@ export default function BookStoreLayout({ children }) {
             clearWishlist();
             localStorage.clear();
             sessionStorage.clear();
-            showInfo("Session expired, Please Login");
             router.replace("/user/login");
         }
     }, [userData, userPending, userSuccess, userError, router])
 
-    const { data: bookData, isPending: bookPending, isSuccess: bookSuccess, isError: bookError } = useQuery({
+    const { data: bookData, isPending: bookPending, isSuccess: bookSuccess } = useQuery({
         queryKey: ["allBooks"],
         queryFn: getAllBooks,
         select: (response) => response?.data,
@@ -69,9 +67,9 @@ export default function BookStoreLayout({ children }) {
         }
     }, [bookData, bookSuccess, setBooks, setCategories])
 
-    const { data: cartData, isPending: cartPending, isSuccess: cartSuccess, isError: cartError } = useQuery({
+    const { data: cartData, isPending: cartPending, isSuccess: cartSuccess } = useQuery({
         queryKey: ["allCarts", user?.id],
-        queryFn: () => getAllCarts(user?.id),
+        queryFn: getAllCarts,
         select: (response) => response?.data,
         enabled: !!user?.id
     })
@@ -103,6 +101,19 @@ export default function BookStoreLayout({ children }) {
         }
     }, [wishlistData, wishlistSuccess, setWishlist]);
 
+    const { data: accessData, isPending: accessPending, isSuccess: accessSuccess } = useQuery({
+        queryKey: ["accessPrvilige", user?.id],
+        queryFn: getAccessDtls,
+        select: (response) => response?.data,
+        enabled: !!user?.id
+    })
+
+    useEffect(() => {
+        if (accessPending) return;
+        if (accessSuccess && accessData?.success) {
+            setUserAccess(accessData?.data);
+        }
+    }, [accessData, accessSuccess, setUserAccess]);
 
     if (userPending && !user) {
         return <BookStoreSkeleton />

@@ -18,6 +18,8 @@ import com.bookstore.BookService.DTO.response.ResponseDTO;
 import com.bookstore.BookService.model.Books;
 import com.bookstore.BookService.service.BookService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/books")
 @CrossOrigin(origins = "http://localhost:3000")
@@ -58,7 +60,7 @@ public class BookController {
     }
 
     @PostMapping("book")
-    public ResponseEntity<ResponseDTO> addNewBook(@RequestBody Books request) {
+    public ResponseEntity<ResponseDTO> addNewBook(@Valid @RequestBody Books request) {
         return service.addNewBook(request);
     }
 
@@ -68,7 +70,7 @@ public class BookController {
     }
 
     @PostMapping("{id}")
-    public ResponseEntity<ResponseDTO> updateBook(@PathVariable String id, @RequestBody Books request) {
+    public ResponseEntity<ResponseDTO> updateBook(@PathVariable String id, @Valid @RequestBody Books request) {
         return service.updateBook(id, request);
     }
 
@@ -80,6 +82,11 @@ public class BookController {
     @PutMapping
     public ResponseEntity<ResponseDTO> updateBooksAsPerOrder(@RequestBody OrderCount request) {
         return service.updateBookCounts(request);
+    }
+
+    @PutMapping("updateBooks")
+    public ResponseEntity<ResponseDTO> revertBooksAsPerOrder(@RequestBody OrderCount request) {
+        return service.revertBooksCount(request);
     }
 
     @DeleteMapping("{id}")

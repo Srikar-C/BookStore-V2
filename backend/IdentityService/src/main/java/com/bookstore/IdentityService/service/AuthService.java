@@ -1,11 +1,14 @@
 package com.bookstore.IdentityService.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Optional;
 
 import com.bookstore.IdentityService.DTO.request.OTPDTO;
 import com.bookstore.IdentityService.DTO.response.ResponseDTO;
@@ -15,7 +18,7 @@ import com.bookstore.IdentityService.repository.VerifyUserRepository;
 import com.bookstore.IdentityService.util.CartFeign;
 import com.bookstore.IdentityService.util.Helper;
 import com.bookstore.IdentityService.util.OrderFeign;
-import com.bookstore.IdentityService.util.WishlistFeign;
+import com.bookstore.IdentityService.util.CommonFeign;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,32 +27,36 @@ import jakarta.servlet.http.HttpServletResponse;
 @Service
 public class AuthService {
 
-    @Autowired
-    private Helper help;
+    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
-    @Autowired
-    private JWTService jwt;
+    private final Helper help;
 
-    @Autowired
-    private UserRepository repo;
+    private final JWTService jwt;
 
-    @Autowired
-    private VerifyUserRepository verifyRepo;
+    private final UserRepository repo;
 
-    @Autowired
-    private BCryptPasswordEncoder encoder;
+    private final VerifyUserRepository verifyRepo;
 
-    // @Autowired
-    // private RestClient rest;
+    private final BCryptPasswordEncoder encoder;
 
-    @Autowired
-    private OrderFeign orderFeign;
+    private final OrderFeign orderFeign;
 
-    @Autowired
-    private CartFeign cartFeign;
+    private final CartFeign cartFeign;
 
-    @Autowired
-    private WishlistFeign wishlistFeign;
+    private final CommonFeign commonFeign;
+
+    public AuthService(Helper help, JWTService jwt, UserRepository repo, VerifyUserRepository verifyRepo,
+            BCryptPasswordEncoder encoder, OrderFeign orderFeign, CartFeign cartFeign,
+            CommonFeign commonFeign) {
+        this.help = help;
+        this.jwt = jwt;
+        this.repo = repo;
+        this.verifyRepo = verifyRepo;
+        this.encoder = encoder;
+        this.orderFeign = orderFeign;
+        this.cartFeign = cartFeign;
+        this.commonFeign = commonFeign;
+    }
 
     public ResponseEntity<ResponseDTO> getCurrentUser(HttpServletRequest http) {
         ResponseDTO response = new ResponseDTO();
@@ -58,21 +65,22 @@ public class AuthService {
             token = getTokenFromCookie(http.getCookies());
         }
         if (token == null) {
-            response = help.error("Not Logged In");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            response = help.errorResponse("Not Logged In");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
         try {
             // String username = jwt.extractUsername(token);
             String email = jwt.extractEmail(token);
             Users user = repo.findByEmail(email);
             if (user == null) {
-                response = help.error("User Not Exist");
+                response = help.errorResponse("User Not Exist");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
             }
-            response = help.success("User Fetched", user);
+            response = help.successResponse("User Fetched", user);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to fetch current user", e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
@@ -94,20 +102,25 @@ public class AuthService {
                 token = getTokenFromCookie(request.getCookies());
             }
             if (token == null) {
-                response = help.error("Not Logged In");
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+                response = help.errorResponse("Not Logged In");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
             }
             String username = jwt.extractUsername(token);
             Users user = repo.findByName(username);
-            if (user.getRole().equals("SUPERUSER")) {
-                response = help.success("User Fetched", null);
+            if (user == null) {
+                response = help.errorResponse("User Not Exist");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+            if ("SUPERUSER".equals(user.getRole())) {
+                response = help.successResponse("User Fetched", null);
                 return ResponseEntity.status(HttpStatus.OK).body(response);
             } else {
-                response = help.error("Forbidden");
+                response = help.errorResponse("Forbidden");
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
             }
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to check admin privileges", e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
@@ -122,7 +135,7 @@ public class AuthService {
 
         request.addCookie(cookie);
 
-        response = help.success("Successfully Logged Out", null);
+        response = help.successResponse("Successfully Logged Out", null);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
@@ -133,24 +146,26 @@ public class AuthService {
             token = getTokenFromCookie(http.getCookies());
         }
         if (token == null) {
-            response = help.error("Not Logged In");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            response = help.errorResponse("Not Logged In");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
         try {
             String userid = jwt.extractUserId(token);
-            Users user = repo.findById(userid).orElse(new Users());
-            if (user == null) {
-                response = help.error("No User");
+            Optional<Users> userResult = repo.findById(userid);
+            if (userResult.isEmpty()) {
+                response = help.errorResponse("No User");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
             }
+            Users user = userResult.get();
             if (!encoder.matches(request.getEmail(), user.getPassword())) {
-                response = help.error("Incorrect Password");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+                response = help.errorResponse("Incorrect Password");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
             }
-            response = help.success("Password Correct", null);
+            response = help.successResponse("Password Correct", null);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to verify password", e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
@@ -163,29 +178,28 @@ public class AuthService {
             token = getTokenFromCookie(req.getCookies());
         }
         if (token == null) {
-            response = help.error("Not Logged In");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            response = help.errorResponse("Not Logged In");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
         try {
-            System.out.println("user token: " + token);
             String userid = jwt.extractUserId(token);
             String email = jwt.extractEmail(token);
 
             // rest.delete().uri("http://localhost:8083/orders/" + userid).retrieve();
 
             ResponseEntity<ResponseDTO> result = null;
-            result = wishlistFeign.deleteWishlist(userid);
-            System.out.println("wishlist result: " + result.toString());
+            result = commonFeign.deleteWishlist(userid);
+            logger.debug("Wishlist deletion completed with status {}", result.getStatusCode());
             if (!result.getBody().isSuccess()) {
                 throw new Exception("Error in Deleting User Account");
             }
             result = orderFeign.deleteUserOrders(userid);
-            System.out.println("orders result: " + result.toString());
+            logger.debug("Order deletion completed with status {}", result.getStatusCode());
             if (!result.getBody().isSuccess()) {
                 throw new Exception("Error in Deleting User Account");
             }
             result = cartFeign.deleteCart(userid);
-            System.out.println("carts result: " + result.toString());
+            logger.debug("Cart deletion completed with status {}", result.getStatusCode());
             if (!result.getBody().isSuccess()) {
                 throw new Exception("Error in Deleting User Account");
             }
@@ -196,10 +210,11 @@ public class AuthService {
             if (!result.getBody().isSuccess()) {
                 throw new Exception("Error in Deleting User Account");
             }
-            response = help.success("Identity Deleted", null);
+            response = help.successResponse("Identity Deleted", null);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to delete user account", e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }

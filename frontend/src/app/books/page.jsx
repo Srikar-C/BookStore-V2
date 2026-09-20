@@ -23,7 +23,7 @@ export default function Books() {
     return (
         <div className="grid grid-cols-3 gap-5 items-start overflow-y-auto w-full h-full bg-(--background) rounded-xl p-3">
             {books?.map((item) => (
-                <BookCard key={item.id} book={item} mode="general" />
+                <BookCard key={item.id} book={item} mode="withOutLogin" />
             ))}
         </div>
     )

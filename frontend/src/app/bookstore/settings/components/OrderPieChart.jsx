@@ -1,32 +1,52 @@
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
-export default function OrderPieChart() {
-    const data = [
-        {
-            name: "Delivered",
-            value: 75,
-        },
-        {
-            name: "Shipped",
-            value: 12,
-        },
-        {
-            name: "Pending",
-            value: 8,
-        },
-        {
-            name: "Cancelled",
-            value: 5,
-        },
-    ];
+export default function OrderPieChart({ ordersData }) {
 
     const COLORS = [
         "#22c55e",
-        "#3b82f6",
         "#f59e0b",
+        "#3b82f6",
         "#ef4444",
     ];
 
+    const allOrders = ordersData.data;
+
+    const deliveryCount = allOrders.reduce((sum, order) => (
+        sum + (order?.deliveryDtls?.deliveryStatus === "delivered")
+    ), 0);
+
+    const pendingCount = allOrders.reduce((sum, order) => (
+        sum + (order?.deliveryDtls?.deliveryStatus === "pending")
+    ), 0);
+
+    const cancelledCount = allOrders.reduce((sum, order) => (
+        sum + (order?.deliveryDtls?.deliveryStatus === "cancelled")
+    ), 0);
+
+    const shippedCount = allOrders.reduce((sum, order) => (
+        sum + (order?.deliveryDtls?.deliveryStatus === "shipped")
+    ), 0);
+
+
+
+    const data = [
+        {
+            name: "Delivered",
+            value: deliveryCount,
+        },
+        {
+            name: "Shipped",
+            value: shippedCount,
+        },
+        {
+            name: "Packed",
+            value: pendingCount,
+        },
+        {
+            name: "Cancelled",
+            value: cancelledCount,
+        },
+    ];
 
     return (
         <div className="w-[50%] h-90">

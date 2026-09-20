@@ -6,10 +6,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +18,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.bookstore.BookService.DTO.request.BookCount;
 import com.bookstore.BookService.DTO.request.BookCountDTO;
@@ -33,11 +35,16 @@ import com.bookstore.BookService.util.Helper;
 @Service
 public class BookService {
 
-    @Autowired
-    private BookRepository repo;
+    private static final Logger logger = LoggerFactory.getLogger(BookService.class);
 
-    @Autowired
-    private Helper help;
+    private final BookRepository repo;
+
+    private final Helper help;
+
+    public BookService(BookRepository repo, Helper help) {
+        this.repo = repo;
+        this.help = help;
+    }
 
     @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<ResponseDTO> addNewBook(Books request) {
@@ -45,7 +52,7 @@ public class BookService {
 
         SubResponse existsBook = help.isExists(request);
         if (!existsBook.isSuccess()) {
-            response = help.error(existsBook.getError());
+            response = help.errorResponse(existsBook.getError());
             return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
         }
 
@@ -53,7 +60,8 @@ public class BookService {
         try {
             newBook.setId(help.generateBookId());
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to generate book id", e);
+            response = help.errorResponse(e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
         newBook.setAuthor(request.getAuthor());
@@ -66,10 +74,11 @@ public class BookService {
         newBook.setUpdatedBy(request.getId());
         try {
             Books savedBook = repo.save(newBook);
-            response = help.success("Book Created", savedBook);
+            response = help.successResponse("Book Created", savedBook);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to create book", e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
@@ -82,10 +91,11 @@ public class BookService {
             hm.put("books", books);
             List<String> cats = repo.findDistinctCategory();
             hm.put("category", cats);
-            response = help.success("Books Fetched", hm);
+            response = help.successResponse("Books Fetched", hm);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to fetch books", e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
@@ -110,10 +120,11 @@ public class BookService {
             hm.put("books", userBooks);
             List<String> cats = repo.findDistinctCategory();
             hm.put("category", cats);
-            response = help.success("Books Fetched", hm);
+            response = help.successResponse("Books Fetched", hm);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to fetch books with user counts", e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
@@ -121,11 +132,17 @@ public class BookService {
     public ResponseEntity<ResponseDTO> getBook(String id) {
         ResponseDTO response = new ResponseDTO();
         try {
-            Books b = repo.findById(id).orElse(new Books());
-            response = help.success("Book Fetched", b);
+            Optional<Books> book = repo.findById(id);
+            if (book.isEmpty()) {
+                response = help.errorResponse("Book not found");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+            Books b = book.get();
+            response = help.successResponse("Book Fetched", b);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to fetch book {}", id, e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
@@ -133,7 +150,12 @@ public class BookService {
     public ResponseEntity<ResponseDTO> updateBook(String id, Books request) {
         ResponseDTO response = new ResponseDTO();
         try {
-            Books b = repo.findById(id).orElse(new Books());
+            Optional<Books> existingBook = repo.findById(id);
+            if (existingBook.isEmpty()) {
+                response = help.errorResponse("Book not found");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+            Books b = existingBook.get();
             b.setAuthor(request.getAuthor());
             b.setCategory(request.getCategory());
             b.setDescription(request.getDescription());
@@ -143,42 +165,44 @@ public class BookService {
             b.setUrl(request.getUrl());
             b.setUpdatedBy(request.getId());
             Books savedBook = repo.save(b);
-            response = help.success("Updated Successfully", savedBook);
+            response = help.successResponse("Updated Successfully", savedBook);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to update book {}", id, e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
     public ResponseEntity<ResponseDTO> getSuggestions(Books request) {
         ResponseDTO response = new ResponseDTO();
-        System.out.println("request for suggestions" + request.toString());
+        logger.debug("Generating suggestions for book id {}", request.getId());
         try {
             List<Books> books = repo.findByCategory(request.getCategory());
             List<BookCountDTO> userBooks = new ArrayList<>();
             Set<String> addedBookIds = new HashSet<>();
             addSuggestions(request, books, userBooks, addedBookIds);
-            if (books.size() < 6) {
+            if (userBooks.size() < 6) {
                 books = repo.findByTitle(request.getTitle());
                 addSuggestions(request, books, userBooks, addedBookIds);
             }
             if (userBooks.size() >= 6) {
                 userBooks = userBooks.subList(0, 6);
-                response = help.success("Got suggestions", userBooks);
+                response = help.successResponse("Got suggestions", userBooks);
                 return ResponseEntity.status(HttpStatus.OK).body(response);
             }
-            if (books.size() < 6) {
+            if (userBooks.size() < 6) {
                 books = repo.findAllByOrderByQuantityDesc();
                 addSuggestions(request, books, userBooks, addedBookIds);
             }
             if (userBooks.size() >= 6) {
                 userBooks = userBooks.subList(0, 6);
             }
-            response = help.success("Got suggestions", userBooks);
+            response = help.successResponse("Got suggestions", userBooks);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to generate suggestions for book {}", request.getId(), e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
@@ -207,20 +231,36 @@ public class BookService {
         }
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<ResponseDTO> updateBookCounts(OrderCount request) {
         ResponseDTO response = new ResponseDTO();
         try {
             List<BookOrderCount> order = request.getBooks();
             for (int i = 0; i < order.size(); i++) {
-                Books b = repo.findById(order.get(i).getBookId()).orElse(new Books());
-                b.setQuantity(b.getQuantity().subtract(order.get(i).getCount()));
+                BookOrderCount item = order.get(i);
+                if (item.getCount() == null || item.getCount().compareTo(BigDecimal.ZERO) <= 0) {
+                    response = help.errorResponse("Book quantity must be greater than zero");
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+                }
+                Optional<Books> existingBook = repo.findById(item.getBookId());
+                if (existingBook.isEmpty()) {
+                    response = help.errorResponse("Book not found: " + item.getBookId());
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+                }
+                Books b = existingBook.get();
+                if (b.getQuantity() == null || b.getQuantity().compareTo(item.getCount()) < 0) {
+                    response = help.errorResponse("Insufficient quantity for book: " + item.getBookId());
+                    return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+                }
+                b.setQuantity(b.getQuantity().subtract(item.getCount()));
                 repo.save(b);
-                System.out.println("Book updated for Id " + b.getId());
+                logger.debug("Book quantity updated for id {}", b.getId());
             }
-            response = help.success("Book Quantities Updated", null);
+            response = help.successResponse("Book Quantities Updated", null);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to update book quantities", e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
@@ -228,6 +268,10 @@ public class BookService {
     public String insertDummy(int count) {
         List<Books> books = new ArrayList<>();
         List<String> cats = repo.findDistinctCategory();
+        Random random = new Random();
+        if (cats.isEmpty()) {
+            return "Cannot insert dummy books without categories";
+        }
         for (int i = 1; i <= count; i++) {
             Books book = new Books();
             Long counter = help.generateDummyCounter();
@@ -237,9 +281,8 @@ public class BookService {
                     "Lorem ipsum dolor sit amet, consectetur adipisicing elit. Tempora blanditiis iusto inventore soluta earum, corrupti distinctio autem vero impedit alias harum, explicabo similique fugiat exercitationem quisquam itaque aliquam omnis illo.");
             book.setTitle("Title" + counter);
             book.setPrice(BigDecimal.valueOf(100 * counter));
-            Random random = new Random();
             book.setQuantity(BigDecimal.valueOf(10 + random.nextInt(350)));
-            book.setCategory(cats.get(random.nextInt(cats.size() - 1)));
+            book.setCategory(cats.get(random.nextInt(cats.size())));
             book.setUrl(
                     "https://blog-cdn.reedsy.com/directories/admin/featured_image/591/dissecting-the-cover-of-a-book-8fbcaf.webp");
             books.add(book);
@@ -248,6 +291,7 @@ public class BookService {
             repo.saveAll(books);
             return "Inserted " + count + " rows books";
         } catch (Exception e) {
+            logger.error("Failed to insert dummy books", e);
             return e.toString();
         }
     }
@@ -256,13 +300,24 @@ public class BookService {
             String sortBy) {
         ResponseDTO response = new ResponseDTO();
         try {
-            System.out.println(pageNumber + " " + pageSize + " " + search + " " + category + " " + sortBy);
+            if (pageNumber < 0 || pageSize < 1 || pageSize > 100) {
+                response = help.errorResponse("Invalid pagination values");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
+            logger.debug("Fetching books page={}, size={}, search={}, category={}, sortBy={}",
+                    pageNumber, pageSize, search, category, sortBy);
             boolean hasCategory = category != null && !category.isEmpty() && !category.isBlank()
                     && !category.equals("All");
             boolean hasSearch = search != null && !search.isEmpty() && !search.isBlank();
 
-            String[] sortParts = sortBy.split(",");
+            String[] sortParts = (sortBy == null || sortBy.isBlank() ? "createdAt,desc" : sortBy).split(",");
             String sortField = sortParts[0];
+            Set<String> sortableFields = Set.of("title", "author", "category", "price", "quantity",
+                    "createdAt", "updatedAt");
+            if (!sortableFields.contains(sortField)) {
+                response = help.errorResponse("Invalid sort field");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
             String sortDirection = sortParts.length > 1 ? sortParts[1] : "asc";
             Sort.Direction direction = sortDirection.equalsIgnoreCase("desc")
                     ? Sort.Direction.DESC
@@ -294,10 +349,11 @@ public class BookService {
             result.put("pageSize", books.getSize());
             result.put("isFirst", books.isFirst());
             result.put("isLast", books.isLast());
-            response = help.success("Fetched Books", result);
+            response = help.successResponse("Fetched Books", result);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to fetch paged books", e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
@@ -306,13 +362,40 @@ public class BookService {
         ResponseDTO response = new ResponseDTO();
         try {
             repo.deleteById(id);
-            response = help.success("Book Deleted Successfully", null);
+            response = help.successResponse("Book Deleted Successfully", null);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
-            response = help.error(e);
+            logger.error("Failed to delete book {}", id, e);
+            response = help.errorResponse(e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
 
+    }
+
+    public ResponseEntity<ResponseDTO> revertBooksCount(OrderCount request) {
+        ResponseDTO response = new ResponseDTO();
+        try {
+            System.out.println("Request for revertion: " + request.toString());
+            List<BookOrderCount> order = request.getBooks();
+            for (int i = 0; i < order.size(); i++) {
+                BookOrderCount item = order.get(i);
+                Optional<Books> existingBook = repo.findById(item.getBookId());
+                if (existingBook.isEmpty()) {
+                    response = help.errorResponse("Book not found: " + item.getBookId());
+                    continue;
+                }
+                Books b = existingBook.get();
+                b.setQuantity(b.getQuantity().add(item.getCount()));
+                repo.save(b);
+                logger.debug("Book quantity updated for id {}", b.getId());
+            }
+            response = help.successResponse("Book Quantities Updated", null);
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        } catch (Exception e) {
+            logger.error("Failed to revert book counts {}", e);
+            response = help.errorResponse(e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
 }

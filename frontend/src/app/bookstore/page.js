@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getPagedBooks } from "../components/utils/bookUtils";
 import BookSkeleton from "../components/skeletons/BookSkeleton";
 import { useAppContext } from "../hooks/AppContext";
+import "@/app/styles.css";
 
 export default function BookStoreLandingPage() {
 
@@ -65,17 +66,24 @@ export default function BookStoreLandingPage() {
         })
     }
 
+    if (isPending) {
+        return <BookSkeleton />
+    }
+
     return (
-        <div className="grid grid-rows-[auto_1fr_auto] items-start overflow-y-auto w-full h-full bg-(--background) rounded-xl p-3">
-            <div className="categories flex justify-between gap-3 p-2 h-[7vh]">
-                <div className="categories flex gap-3">
+        <div className="grid grid-rows-[auto_1fr_auto] items-start overflow-y-auto w-full h-full bg-(--background) rounded-l-xl p-3 custom-scrollbar">
+            <div className="header flex justify-between gap-3 p-2 h-[10vh] w-full">
+                <div className="categories flex min-w-0 flex-1 gap-3 w-65 overflow-x-auto overflow-y-hidden h-full items-center custom-scrollbar">
                     {categories?.map((item, index) => (
-                        <p key={index} className={`px-3 py-1 rounded-lg ${selectedcategory !== item ? "bg-(--background) text-(--foreground)" : "bg-(--foreground) text-(--background)"} shadow-xs shadow-(color:--shadow) cursor-pointer`} onClick={() => handleBookSortByCategory(item)}>
+                        <p key={index} className={`px-3 py-1 whitespace-nowrap rounded-lg ${selectedcategory !== item ? "bg-(--background) text-(--foreground)" : "bg-(--foreground) text-(--background)"} shadow-xs shadow-(color:--shadow) cursor-pointer w-fit`} onClick={() => {
+                            setPageNumber(0);
+                            handleBookSortByCategory(item);
+                        }}>
                             {item}
                         </p>
                     ))}
                 </div>
-                <div className="options flex gap-3">
+                <div className="options shrink-0 flex gap-3 items-center">
                     <div className="size flex items-center gap-2 border-2 border-gray-600 p-2">
                         <span>{data?.data?.isLast ? data?.data?.totalElements : pageSize * (pageNumber + 1)}</span>
                         <span>/</span>
@@ -88,14 +96,12 @@ export default function BookStoreLandingPage() {
                             setPageNumber(0);
                         }} />
                     </div>
-
                 </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 p-4">
-                {isPending ?
-                    <BookSkeleton /> : booksWithCartCount?.map((item) => (
-                        <BookCard key={item.id} book={item} mode="display" />
-                    ))}
+                {booksWithCartCount?.map((item) => (
+                    <BookCard key={item.id} book={item} mode="withLogin" />
+                ))}
             </div>
             <div className="pagintion w-full flex justify-center">
                 <Pagination count={Math.max(data?.data?.content?.books?.totalPages, 1)} page={pageNumber + 1} color="secondary"
