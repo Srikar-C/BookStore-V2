@@ -1,5 +1,9 @@
 <h2><u>BOOKSTORE</u></h2>
 <p> A full-stack e-commerce application designed for purchasing and managing books online. The application provides separate functionalities for customers, administrators, and superusers, with a microservices-oriented backend architecture. </p>
+<h2><u>Demonstration Link</u></h2>
+<h3><a href="https://drive.google.com/file/d/14s7GEqxEKpV5l77oi7coW9j7-7mrxfKc/view?usp=sharing](https://drive.google.com/file/d/1OV4RBt-H72SqCzo3Gd11oGbEWYiI_PLt/view?usp=sharing" target="_blank">https://drive.google.com/file/d/14s7GEqxEKpV5l77oi7coW9j7-7mrxfKc/view?usp=sharing](https://drive.google.com/file/d/1OV4RBt-H72SqCzo3Gd11oGbEWYiI_PLt/view?usp=sharing</a></h3>
+
+
 
 <p> Customers can register and securely log in, browse and search for books, manage their cart and wishlist, place orders, view order history, track orders, and manage their account details. Administrators can manage the book catalogue and inventory through an administrative dashboard, while superusers can manage administrator access and permissions. </p>
 <h2><u>Application Features</u></h2>
@@ -393,7 +397,7 @@ Clone the repo
       <li>npm run dev</li>
     </ul>
     <u></u>
-    <p> Run the <b>Identity Service</b>m <b>Book Service</b>, <b>Common Service</b> as Spring Boot applications using your preferred IDE, such as Spring Tool Suite or IntelliJ IDEA. </p>
+    <p> Run the <b>Identity Service</b>, <b>Book Service</b>, <b>Common Service</b> as Spring Boot applications using your preferred IDE, such as Spring Tool Suite or IntelliJ IDEA. </p>
 </h2>
 <h3>Environment Configuration</h3>
 
