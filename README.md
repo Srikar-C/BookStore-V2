@@ -1,10 +1,10 @@
 <h2><u>BOOKSTORE</u></h2>
 <p> A full-stack e-commerce application designed for purchasing and managing books online. The application provides separate functionalities for customers, administrators, and superusers, with a microservices-oriented backend architecture. </p>
 <h2><u>Demonstration Link</u></h2>
-<h3><a href="https://drive.google.com/file/d/14s7GEqxEKpV5l77oi7coW9j7-7mrxfKc/view?usp=sharing](https://drive.google.com/file/d/1OV4RBt-H72SqCzo3Gd11oGbEWYiI_PLt/view?usp=sharing" target="_blank">https://drive.google.com/file/d/14s7GEqxEKpV5l77oi7coW9j7-7mrxfKc/view?usp=sharing](https://drive.google.com/file/d/1OV4RBt-H72SqCzo3Gd11oGbEWYiI_PLt/view?usp=sharing</a></h3>
+<h3><a href="https://drive.google.com/file/d/14s7GEqxEKpV5l77oi7coW9j7-7mrxfKc/view?usp=sharing" target="_blank">https://drive.google.com/file/d/14s7GEqxEKpV5l77oi7coW9j7-7mrxfKc/view?usp=sharing</a></h3>
 
 
-
+<h2><u>About Project</u></h2>
 <p> Customers can register and securely log in, browse and search for books, manage their cart and wishlist, place orders, view order history, track orders, and manage their account details. Administrators can manage the book catalogue and inventory through an administrative dashboard, while superusers can manage administrator access and permissions. </p>
 <h2><u>Application Features</u></h2>
 
