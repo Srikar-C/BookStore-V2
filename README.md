@@ -392,6 +392,7 @@ Clone the repo
       <li>npm install</li>
       <li>npm run dev</li>
     </ul>
+    <u></u>
     <ul> <li>Identity Service</li> <li>Book Service</li> <li>Common Service</li> </ul>
     <p> Run the above services as Spring Boot applications using your preferred IDE, such as Spring Tool Suite or IntelliJ IDEA. </p>
 </h2>
