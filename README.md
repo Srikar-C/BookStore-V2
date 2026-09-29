@@ -393,8 +393,7 @@ Clone the repo
       <li>npm run dev</li>
     </ul>
     <u></u>
-    <ul> <li>Identity Service</li> <li>Book Service</li> <li>Common Service</li> </ul>
-    <p> Run the above services as Spring Boot applications using your preferred IDE, such as Spring Tool Suite or IntelliJ IDEA. </p>
+    <p> Run the <b>Identity Service</b>m <b>Book Service</b>, <b>Common Service</b> as Spring Boot applications using your preferred IDE, such as Spring Tool Suite or IntelliJ IDEA. </p>
 </h2>
 <h3>Environment Configuration</h3>
 
