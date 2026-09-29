@@ -358,12 +358,16 @@ BookStore V2
 <h3>Frontend</h3> <ul> <li>Next.js</li> <li>React.js</li> <li>Tailwind CSS</li> <li>Zustand</li> <li>TanStack Query</li> <li>React Hook Form</li> </ul>
 
 <h3>Backend</h3> <ul> <li>Java</li> <li>Spring Boot</li> <li>Node.js</li> <li>Express.js</li> <li>REST APIs</li> <li>Microservices-oriented architecture</li> </ul>
+<h3>Databases</h3> <ul> <li>PostgreSQL</li> <li>MongoDB</li> </ul>
 
+<h3>Security</h3> <ul> <li>JWT Authentication</li> <li>HttpOnly Cookies</li> <li>BCrypt Password Hashing</li> <li>Role-based Authorization</li> </ul>
+
+<h3>Development Tools</h3> <ul> <li>Git</li> <li>GitHub</li> <li>Visual Studio Code</li> <li>Spring Tool Suite</li> </ul>
 <h2>Prerequisites</h2>
 Install
 <a href="https://www.postgresql.org/download/" target="_blank">PostgreSQL</a>
 <a href="https://nodejs.org/en" target="_blank">NodeJS</a>
-<a href="[https://nodejs.org/en](https://www.mongodb.com/docs/manual/installation/)" target="_blank">MongoDB</a>
+<a href="https://www.mongodb.com/docs/manual/installation/" target="_blank">MongoDB</a>
 
 <h2><u>How to run the project in your system</u></h2>
 Clone the repo
@@ -375,20 +379,21 @@ Clone the repo
     <li><b>Note:</b> Make sure to update environments variables to respective ports</li>
   </ul>
   <h3>Run Backend</h3>
-  <ul>
-    <li>cd backend</li>
+    cd backend
+    <p>Run Cart Service</p>
     <ul>
       <li>cd CartService</li>
       <li>npm install</li>
       <li>npm run dev</li>
     </ul>
+    <p>Run Order Service</p>
     <ul>
       <li>cd OrderService</li>
       <li>npm install</li>
       <li>npm run dev</li>
     </ul>
-     <p> Run the above services as Spring Boot applications using your preferred IDE, such as Spring Tool Suite or IntelliJ IDEA. </p>
-  </ul>
+    <ul> <li>Identity Service</li> <li>Book Service</li> <li>Common Service</li> </ul>
+    <p> Run the above services as Spring Boot applications using your preferred IDE, such as Spring Tool Suite or IntelliJ IDEA. </p>
 </h2>
 <h3>Environment Configuration</h3>
 
@@ -404,8 +409,4 @@ Clone the repo
 
 <pre> http://localhost:3000 </pre>
 
-<h3>Databases</h3> <ul> <li>PostgreSQL</li> <li>MongoDB</li> </ul>
 
-<h3>Security</h3> <ul> <li>JWT Authentication</li> <li>HttpOnly Cookies</li> <li>BCrypt Password Hashing</li> <li>Role-based Authorization</li> </ul>
-
-<h3>Development Tools</h3> <ul> <li>Git</li> <li>GitHub</li> <li>Visual Studio Code</li> <li>Spring Tool Suite</li> </ul>
