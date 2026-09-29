@@ -353,11 +353,56 @@ BookStore V2
 │   ├── postcss.config.mjs
 │   └── README.md
 └── Readme.md
-
+</pre>
 <h2><u>Technology Stack</u></h2>
 <h3>Frontend</h3> <ul> <li>Next.js</li> <li>React.js</li> <li>Tailwind CSS</li> <li>Zustand</li> <li>TanStack Query</li> <li>React Hook Form</li> </ul>
 
 <h3>Backend</h3> <ul> <li>Java</li> <li>Spring Boot</li> <li>Node.js</li> <li>Express.js</li> <li>REST APIs</li> <li>Microservices-oriented architecture</li> </ul>
+
+<h2>Prerequisites</h2>
+Install
+<a href="https://www.postgresql.org/download/" target="_blank">PostgreSQL</a>
+<a href="https://nodejs.org/en" target="_blank">NodeJS</a>
+<a href="[https://nodejs.org/en](https://www.mongodb.com/docs/manual/installation/)" target="_blank">MongoDB</a>
+
+<h2><u>How to run the project in your system</u></h2>
+Clone the repo
+  <h3>Run frontend</h3>
+  <ul>
+    <li>cd frontend</li>
+    <li>npm install</li>
+    <li>npm run dev</li>
+    <li><b>Note:</b> Make sure to update environments variables to respective ports</li>
+  </ul>
+  <h3>Run Backend</h3>
+  <ul>
+    <li>cd backend</li>
+    <ul>
+      <li>cd CartService</li>
+      <li>npm install</li>
+      <li>npm run dev</li>
+    </ul>
+    <ul>
+      <li>cd OrderService</li>
+      <li>npm install</li>
+      <li>npm run dev</li>
+    </ul>
+     <p> Run the above services as Spring Boot applications using your preferred IDE, such as Spring Tool Suite or IntelliJ IDEA. </p>
+  </ul>
+</h2>
+<h3>Environment Configuration</h3>
+
+<p> Before starting the application, configure the required environment variables for database connections, JWT configuration, frontend URLs, backend service URLs, and other service-specific settings. </p>
+
+<ul> <li>PostgreSQL connection details</li> <li>MongoDB connection details</li> <li>JWT secret/configuration</li> <li>Frontend and backend service URLs</li> <li>Service-specific ports</li> </ul>
+
+<p> <b>Note:</b> Make sure the configured ports and service URLs match the values used by the frontend and other backend services. </p>
+
+<h3>5. Access the Application</h3>
+
+<p> Once all services are running, open the frontend in your browser: </p>
+
+<pre> http://localhost:3000 </pre>
 
 <h3>Databases</h3> <ul> <li>PostgreSQL</li> <li>MongoDB</li> </ul>
 
